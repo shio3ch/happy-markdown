@@ -51,27 +51,105 @@
         "command": "happyMarkdown.openSource",
         "title": "Happy Markdown: ソースを開く",
         "icon": "$(code)"
+      },
+      {
+        "command": "happyMarkdown.showFiles",
+        "title": "Happy Markdown: ファイル一覧に切り替え",
+        "icon": "$(files)"
+      },
+      {
+        "command": "happyMarkdown.showSearch",
+        "title": "Happy Markdown: 本文検索に切り替え",
+        "icon": "$(search)"
+      },
+      {
+        "command": "happyMarkdown.showBookmarks",
+        "title": "Happy Markdown: ブックマークに切り替え",
+        "icon": "$(bookmark)"
+      },
+      {
+        "command": "happyMarkdown.addBookmark",
+        "title": "Happy Markdown: ブックマークに追加",
+        "icon": "$(bookmark)"
+      },
+      {
+        "command": "happyMarkdown.removeBookmark",
+        "title": "Happy Markdown: ブックマークから削除",
+        "icon": "$(bookmark-slash)"
+      },
+      {
+        "command": "happyMarkdown.enableFollowActive",
+        "title": "Happy Markdown: 現在の文書への追従をオン",
+        "icon": "$(eye-closed)"
+      },
+      {
+        "command": "happyMarkdown.disableFollowActive",
+        "title": "Happy Markdown: 現在の文書への追従をオフ",
+        "icon": "$(eye)"
       }
     ],
     "menus": {
       "editor/title": [],
       "view/title": [
         {
+          "command": "happyMarkdown.showFiles",
+          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search)",
+          "group": "navigation@1"
+        },
+        {
+          "command": "happyMarkdown.showSearch",
+          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search)",
+          "group": "navigation@2"
+        },
+        {
+          "command": "happyMarkdown.showBookmarks",
+          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search)",
+          "group": "navigation@3"
+        },
+        {
           "command": "happyMarkdown.refreshExplorer",
-          "when": "view == happyMarkdown.explorer",
-          "group": "navigation"
+          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search)",
+          "group": "navigation@4"
+        },
+        {
+          "command": "happyMarkdown.enableFollowActive",
+          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search) && !happyMarkdown.followActive",
+          "group": "navigation@5"
+        },
+        {
+          "command": "happyMarkdown.disableFollowActive",
+          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search) && happyMarkdown.followActive",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
         {
           "command": "happyMarkdown.openSource",
-          "when": "view == happyMarkdown.explorer && viewItem == markdownFile",
+          "when": "view == happyMarkdown.explorer && viewItem =~ /^(markdownFile|bookmarkedMarkdownFile)$/",
           "group": "inline"
+        },
+        {
+          "command": "happyMarkdown.addBookmark",
+          "when": "view == happyMarkdown.explorer && viewItem == markdownFile",
+          "group": "inline@1"
+        },
+        {
+          "command": "happyMarkdown.removeBookmark",
+          "when": "view == happyMarkdown.explorer && viewItem == bookmarkedMarkdownFile",
+          "group": "inline@1"
         }
       ],
       "commandPalette": [
         {
           "command": "happyMarkdown.openSource",
+          "when": "false"
+        },
+        {
+          "command": "happyMarkdown.addBookmark",
+          "when": "false"
+        },
+        {
+          "command": "happyMarkdown.removeBookmark",
           "when": "false"
         }
       ]
@@ -104,7 +182,14 @@
       "happyMarkdown": [
         {
           "id": "happyMarkdown.explorer",
-          "name": "Markdownエクスプローラー"
+          "name": "Markdownエクスプローラー",
+          "when": "happyMarkdown.explorerMode != search"
+        },
+        {
+          "type": "webview",
+          "id": "happyMarkdown.search",
+          "name": "Markdownエクスプローラー",
+          "when": "happyMarkdown.explorerMode == search"
         }
       ]
     },
@@ -113,11 +198,6 @@
         "view": "happyMarkdown.explorer",
         "contents": "Markdownを読むフォルダーを開いてください。\n[フォルダーを開く](command:vscode.openFolder)",
         "when": "workbenchState == empty"
-      },
-      {
-        "view": "happyMarkdown.explorer",
-        "contents": "Markdownファイルが見つかりません。\n.md または .markdown ファイルを追加してください。\n[一覧を更新](command:happyMarkdown.refreshExplorer)",
-        "when": "workbenchState != empty"
       }
     ]
   },

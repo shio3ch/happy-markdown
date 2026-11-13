@@ -2,6 +2,7 @@ const esbuild = require('esbuild');
 const fs = require('node:fs');
 const path = require('node:path');
 const result = esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./webview/workbench.js'], outfile: 'dist/workbench.js', bundle: true, minify: true, target: 'chrome120', legalComments: 'linked', metafile: true });
+esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./webview/explorer-search.js'], outfile: 'dist/explorer-search.js', bundle: true, minify: true, target: 'chrome120' });
 const packages = new Set();
 for (const input of Object.keys(result.metafile.inputs)) {
   const marker = input.lastIndexOf('node_modules/');

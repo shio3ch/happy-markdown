@@ -1,4 +1,4 @@
-# 構成と設計
+# 構成と描画経路
 
 編集・プレビュー・文書同期を分離し、将来別の編集UIを追加しやすい構成にしています。
 
@@ -10,7 +10,10 @@
 | `src/shell.js` | HTMLの枠組み、ツールバー、CSP |
 | `src/markdown.js` | Markdown描画、HTMLサニタイズ、タスク編集 |
 | `src/text-change.js` / `src/images.js` | 差分編集、画像選択・コピー |
-| `src/explorer.js` | Markdownファイル一覧 |
+| `src/explorer.js` | ファイル一覧・ブックマークのTreeView、表示モードと文書追従、検索の更新制御 |
+| `src/workspace-search.js` | 画面から独立した検索条件・本文検索処理 |
+| `src/explorer-search.js` | 検索用WebviewViewの登録、CSP、メッセージ検証 |
+| `webview/explorer-search.js` | 検索欄、IME・入力イベント、検索結果の安全なDOM描画 |
 | `webview/editor.js` | CodeMirrorと構文挿入 |
 | `webview/session.js` | 入力同期、応答待ち、競合処理 |
 | `webview/workbench.js` | 編集・プレビューの切り替えと接続 |
@@ -23,7 +26,8 @@
 | --- | --- |
 | `package.json` | 拡張メタデータ、コマンド、Custom Editor、ビューの登録、npmスクリプト |
 | `.vscode/` | 拡張開発ホストの起動設定とビルドタスク |
-| `examples/` | 手動確認用のMarkdown文書など |
+| `wiki/` | 用途別の開発資料と、デバッグ起動時の検証用ワークスペース |
+| `examples/` | Markdown表現をまとめた補助サンプル |
 | `media/` | サイドバーのアイコンなど |
 | `dist/` | ビルドで生成するWebviewバンドルとライセンス情報 |
 | `.vscodeignore` | VSIXへの同梱対象から除外するファイル |
@@ -36,18 +40,14 @@
 
 プレビューの描画にはmarkdown-it、構文色分けにはhighlight.js、HTMLのサニタイズにはsanitize-htmlを使用します。
 
-## 文書同期
+## 関連資料
 
-VS Codeの `TextDocument` を文書の基準とし、Webviewの入力は拡張ホスト側の `WorkspaceEdit` を通じて反映します。メッセージには文書バージョンと応答IDを付け、連続入力を順番に処理します。
+[Wikiホーム](../README.md) / [文書同期](document-sync.md) / [安全性](security.md)
 
-`webview/session.js` は応答待ちの入力と文書の状態を管理します。古い応答で新しい入力を上書きせず、外部更新との競合や書き込み失敗では入力内容を保持します。競合解決では最新の文書を採用するか、入力中の内容で置換するかをユーザーが選択します。
+## サイドバーの検索
 
-保存・自動保存・Undo / RedoはVS Codeの文書管理と連携します。モード切り替えでは未保存の編集とカーソル位置を維持します。
+ファイル一覧・ブックマークはTreeView、検索画面はWebviewViewを使い、コンテキストキーで同じサイドバー領域を切り替えます。本文検索は `{ text }` の条件オブジェクトを受け取る処理として分離し、将来のフロントマター条件の追加先を明確にしています。
 
-## リソースと安全性
+検索入力は短い待ち時間でまとめ、世代番号で古い非同期処理を無効にします。Webview側でも入力IDと検索語を照合します。結果のファイル操作は拡張ホストが保持する結果一覧内のURIに限定し、本文・ファイル名をHTMLとして挿入しません。検索用スクリプトは `dist/explorer-search.js` にビルドし、CSSとともに拡張へ同梱します。
 
-HTMLサニタイズとWebviewのCSPで、Markdown由来のスクリプトやイベント属性を実行させない設計です。ローカルリソースは `asWebviewUri` を通して参照します。
-
-編集エンジンは拡張に同梱し、実行時にCDNからライブラリを取得したり文書を外部サービスへ送信したりしません。Markdown内で参照されたHTTPS画像は、その配信元から読み込みます。
-
-ブラウザー向けコードは `dist/workbench.js` にバンドルされ、同梱ライブラリのライセンスは `dist/THIRD_PARTY_LICENSES.txt` に出力されます。
+参考: [VS Code公式 — Webview API](https://code.visualstudio.com/api/extension-guides/webview)

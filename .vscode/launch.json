@@ -5,10 +5,15 @@
       "name": "Happy Markdown: 拡張をデバッグ",
       "type": "extensionHost",
       "request": "launch",
+      "runtimeExecutable": "${execPath}",
       "args": [
+        "${workspaceFolder}/wiki",
         "--extensionDevelopmentPath=${workspaceFolder}",
-        "${workspaceFolder}/examples/preview.md"
+        "--disable-extensions",
+        "--profile-temp",
+        "${workspaceFolder}/wiki/README.md"
       ],
+      "trace": true,
       "preLaunchTask": "Happy Markdown: build"
     }
   ]
