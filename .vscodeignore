@@ -1,0 +1,14 @@
+.vscode/**
+.git/**
+.github/**
+examples/**
+test/**
+package-lock.json
+.gitignore
+.vscodeignore
+*.vsix
+.cache/**
+webview/**
+scripts/**
+AGENTS.md
+wiki/**

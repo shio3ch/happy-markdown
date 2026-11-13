@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Happy Markdown: 拡張をデバッグ",
+      "type": "extensionHost",
+      "request": "launch",
+      "args": [
+        "--extensionDevelopmentPath=${workspaceFolder}",
+        "${workspaceFolder}/examples/preview.md"
+      ],
+      "preLaunchTask": "Happy Markdown: build"
+    }
+  ]
+}

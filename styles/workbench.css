@@ -1,0 +1,82 @@
+/* Dedicated editing and reading workspace. The toolbar is outside both engines. */
+body.workbench { max-width: none; padding: 0; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+[hidden] { display: none !important; }
+.workbench-toolbar { display: flex; flex-wrap: wrap; align-items: center; flex: 0 0 auto; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--design-border); background: var(--vscode-editor-background, #fff); font: 12px/1.5 system-ui, sans-serif; }
+.workbench-toolbar button, #conflict button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 5px 10px; border: 1px solid var(--design-border); border-radius: 6px; background: var(--vscode-button-secondaryBackground, var(--design-surface)); color: var(--vscode-button-secondaryForeground, inherit); cursor: pointer; }
+.workbench-toolbar button:hover, #conflict button:hover { background: var(--vscode-toolbar-hoverBackground, var(--design-surface)); }
+.workbench-toolbar button:disabled { opacity: 0.5; cursor: default; }
+.workbench-toolbar button:focus-visible { outline: 2px solid var(--vscode-focusBorder, var(--design-accent)); outline-offset: 2px; }
+#edit-actions { display: inline-flex; gap: 5px; }
+#mode[aria-pressed="true"] { border-color: var(--design-accent); }
+.workbench #document { flex: 1; min-height: 0; overflow: auto; padding: 32px max(24px, calc((100% - 850px) / 2)) 80px; scroll-padding-top: 20px; }
+.workbench #editor { flex: 1; min-height: 0; overflow: hidden; }
+.cm-editor { height: 100%; font-family: var(--vscode-editor-font-family, monospace); font-size: var(--vscode-editor-font-size, 14px); }
+.cm-scroller { overflow: auto; }
+.cm-content { padding: 20px 0 80px; caret-color: var(--vscode-editorCursor-foreground, currentColor); }
+.cm-line { padding: 0 20px; }
+.cm-gutters { background: var(--vscode-editor-background, #fff); color: var(--vscode-editorLineNumber-foreground, var(--design-muted)); border-right: 1px solid var(--design-border); }
+.cm-gutterElement { padding-top: 0; }
+.cm-activeLine { background: var(--vscode-editor-lineHighlightBackground, #88888810); }
+.cm-editor.cm-focused { outline: none; }
+.cm-editor .cm-selectionBackground, .cm-editor.cm-focused .cm-selectionBackground { background: var(--vscode-editor-selectionBackground, #5b9df550); }
+.cm-cursor { border-left-color: var(--vscode-editorCursor-foreground, currentColor); }
+.cm-panels { color: var(--vscode-editor-foreground); background: var(--design-surface); }
+.cm-textfield { color: inherit; background: var(--vscode-input-background); border: 1px solid var(--design-border); }
+.cm-button { color: inherit; background: var(--design-surface); }
+#conflict { padding: 12px 20px; border-bottom: 1px solid var(--vscode-inputValidation-warningBorder, #c88a23); background: var(--vscode-inputValidation-warningBackground, var(--design-surface)); }
+#conflict button { margin: 5px; }
+.workbench #message { position: static; flex: 0 0 auto; margin: 0; border-radius: 0; font-size: 12px; }
+@media (max-width: 600px) { .workbench-toolbar { padding: 8px; gap: 5px; } #edit-actions { flex-wrap: wrap; } .workbench #document { padding: 20px 20px 48px; } }
+/* Override CodeMirror's generated base rules without depending on load order. */
+.workbench .cm-editor .cm-content { padding: 20px 0 80px; }
+.workbench .cm-editor .cm-line { padding: 0 20px; }
+.workbench .cm-editor .cm-scroller { font-family: var(--vscode-editor-font-family, Consolas, monospace); line-height: 1.75; }
+.workbench .cm-editor .cm-gutters { background: var(--vscode-editor-background, #fff); color: var(--vscode-editorLineNumber-foreground, var(--design-muted)); }
+.workbench .cm-editor .cm-activeLine { background: var(--vscode-editor-lineHighlightBackground, #88888810); }
+
+/* Ordered, compact controls; the mode switch remains the final rightmost item. */
+.workbench-toolbar { gap: 4px; padding: 8px 12px; position: relative; z-index: 20; }
+#edit-actions { display: contents; }
+.workbench-toolbar .tool-button { width: 32px; min-width: 32px; height: 32px; padding: 6px; font-size: 15px; }
+#mode { margin-left: auto; white-space: nowrap; }
+#progress { padding: 0 8px; white-space: nowrap; font-size: 11px; }
+.tool-dropdown { position: relative; }
+.tool-options { position: absolute; top: 100%; left: 0; z-index: 30; display: flex; flex-direction: column; min-width: 170px; padding: 5px; border: 1px solid var(--design-border); border-radius: 7px; background: var(--vscode-menu-background, var(--vscode-editor-background, #fff)); color: var(--vscode-menu-foreground, inherit); box-shadow: 0 5px 18px #0003; }
+.workbench-toolbar .tool-options button { width: 100%; justify-content: flex-start; border: 0; background: transparent; white-space: nowrap; }
+.workbench-toolbar .tool-options button:hover, .workbench-toolbar .tool-options button:focus-visible { background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground, var(--design-surface))); }
+.tool-options small { color: var(--design-muted); margin-left: auto; }
+.workbench #document h6[data-heading-level="7"] { font-size: 0.95em; color: var(--design-muted); font-weight: 600; }
+@media (max-width: 600px) { .workbench-toolbar { padding: 8px; } #mode { margin-left: auto; } .tool-options { max-width: calc(100vw - 24px); } }
+
+/* CodeMirror's generated cursor rule must not override the VS Code theme. */
+.workbench { --design-cursor: var(--vscode-editorCursor-foreground, var(--vscode-editor-foreground, #24292f)); }
+.workbench.vscode-dark, .workbench.vscode-high-contrast { --design-cursor: var(--vscode-editorCursor-foreground, var(--vscode-editor-foreground, #f0f6fc)); }
+.workbench .cm-editor .cm-cursor,
+.workbench .cm-editor .cm-dropCursor {
+  border-left: 2px solid var(--design-cursor);
+}
+
+/* Preview navigation: balanced center search, joined controls, and outline. */
+#toolbar-start, #preview-info { display: flex; align-items: center; gap: 6px; min-width: 0; flex-wrap: wrap; }
+#toolbar-start { flex: 1; }
+#preview-info #progress { padding: 0 4px; }
+.workbench[data-mode="preview"] .workbench-toolbar { display: grid; grid-template-columns: minmax(0,1fr) minmax(280px,520px) minmax(0,1fr); gap: 12px; }
+.workbench[data-mode="preview"] #mode { justify-self: end; }
+.workbench .document-search { display: flex; align-items: center; gap: 0; width: 100%; margin: 0; min-width: 0; height: 34px; border: 1px solid var(--vscode-input-border,var(--design-border)); border-radius: 6px; background: var(--vscode-input-background,var(--design-surface)); }
+.workbench .document-search:focus-within { outline: 1px solid var(--vscode-focusBorder,var(--design-accent)); }
+.workbench .document-search .search-icon { flex: 0 0 16px; margin-left: 10px; color: var(--vscode-input-placeholderForeground,var(--design-muted)); }
+.workbench .document-search input { flex: 1; min-width: 0; width: 0; height: 32px; border: 0; outline: none; background: transparent; padding: 6px 8px; }
+.workbench .document-search #search-count { padding: 0 6px; min-width: 0; font-size: 11px; color: var(--design-muted); }
+.workbench .document-search button { width: 32px; min-width: 32px; height: 32px; min-height: 32px; padding: 0; border: 0; border-left: 1px solid var(--design-border); border-radius: 0; background: transparent; }
+.workbench .document-search button:last-child { border-radius: 0 5px 5px 0; }
+#toc-options { width: 320px; max-width: calc(100vw - 32px); max-height: min(65vh,500px); overflow: auto; }
+#toc-options ul { list-style: none; margin: 0; padding: 0; }
+#toc-options ul ul { margin-left: 12px; padding-left: 10px; border-left: 1px solid var(--design-border); }
+#toc-options li { margin: 0; }
+.workbench-toolbar #toc-options button { white-space: normal; text-align: left; overflow-wrap: anywhere; line-height: 1.5; }
+.toc-empty { padding: 8px; margin: 0; color: var(--design-muted); }
+@media (max-width: 900px) {
+  .workbench[data-mode="preview"] .workbench-toolbar { grid-template-columns: minmax(0,1fr) auto; gap: 8px; }
+  .workbench[data-mode="preview"] .document-search { grid-row: 2; grid-column: 1 / -1; max-width: 600px; justify-self: center; }
+  .workbench[data-mode="preview"] #mode { grid-column: 2; grid-row: 1; }
+}
