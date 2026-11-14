@@ -11,6 +11,7 @@
 | 資料 | 内容 |
 | --- | --- |
 | [構成と描画経路](design/architecture.md) | ファイルの責務、専用画面と標準プレビュー |
+| [画面コンポーネント](design/components.md) | 部品ごとの実装先、状態の管理先、画面を変更するときの手順 |
 | [文書同期](design/document-sync.md) | 文書の基準、競合、保存、Undo / Redo |
 | [リソースと安全性](design/security.md) | CSP、サニタイズ、ローカルリソース、ライセンス |
 
@@ -32,6 +33,8 @@
 | [配布物の作成](development/packaging.md) | VSIX作成、同梱物、配布方針 |
 
 ## Wikiの構成と運用
+
+アプリ本体はTypeScript、専用画面とサイドバーのUIはReactで実装しています。専用画面のテキスト編集にはCodeMirrorを使用し、サイドバーのファイル一覧・本文検索・ブックマークは1つのWebviewViewで切り替えます。部品を変更する場合は[画面コンポーネント](design/components.md)、文書への反映を変更する場合は[文書同期](design/document-sync.md)を確認してください。
 
 デバッグ時はこの `wiki` フォルダーをワークスペースとして開きます。`design`、`features`、`development` の分類と、その下の `features/viewer` の階層を使ってフォルダー表示を確認できます。本文検索やブックマークの確認にも実際の資料を使います。
 

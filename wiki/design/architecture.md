@@ -48,6 +48,8 @@
 
 起動用エントリーには画面部品を実装せず、`components/` の画面を読み込みます。各画面は独立した部品をpropsで組み合わせます。共通のボタンやメニューは `common/`、専用画面の部品は `workbench/`、サイドバーの部品は `explorer/` に置きます。
 
+個々の部品の責務と変更先は[画面コンポーネント](components.md)にまとめています。
+
 `WorkbenchController` は既存の `DocumentSession` を通じて入力、応答待ち、競合、保存・Undo / Redo前の反映待ちを管理し、`useSyncExternalStore` でReactへ状態を渡します。`ExplorerController` は検索入力・IME・応答IDを管理し、表示切り替え・開閉・ファイル操作を検証済みのメッセージでホストへ依頼します。Reactの再描画自体は文書編集を発生させません。
 
 CodeMirrorは `EditorPane` のEffectで生成し、モード切り替えでは同じインスタンスを表示・非表示にします。アンマウント時にエディターとテーマ監視を破棄し、Webviewのメッセージ購読・キーボードイベントも解除します。
@@ -74,4 +76,4 @@ Markdown本文は拡張ホストでサニタイズしたHTMLのみを、`Preview
 
 ## 関連資料
 
-[Wikiホーム](../README.md) / [文書同期](document-sync.md) / [安全性](security.md)
+[Wikiホーム](../README.md) / [画面コンポーネント](components.md) / [文書同期](document-sync.md) / [安全性](security.md)
