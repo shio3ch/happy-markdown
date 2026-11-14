@@ -1,4 +1,5 @@
 import type { useDocumentSearch } from '../../hooks/use-document-search';
+import { Icon } from '../common/icon';
 
 export function DocumentSearch({ search, hidden }: { search: ReturnType<typeof useDocumentSearch>; hidden: boolean }) {
   return <div className="document-search" role="search" hidden={hidden}>
@@ -9,7 +10,7 @@ export function DocumentSearch({ search, hidden }: { search: ReturnType<typeof u
         if (event.key === 'Escape') { search.setTerm(''); event.currentTarget.blur(); }
       }} />
     <span id="search-count" role="status">{search.term ? `${search.current + 1} / ${search.matches}` : ''}</span>
-    <button id="search-prev" type="button" aria-label="前の一致" disabled={!search.matches} onClick={() => search.navigate(-1)}>↑</button>
-    <button id="search-next" type="button" aria-label="次の一致" disabled={!search.matches} onClick={() => search.navigate(1)}>↓</button>
+    <button id="search-prev" type="button" title="前の一致（Shift+Enter）" aria-label="前の一致" disabled={!search.matches} onClick={() => search.navigate(-1)}><Icon name="arrowUp" /></button>
+    <button id="search-next" type="button" title="次の一致（Enter）" aria-label="次の一致" disabled={!search.matches} onClick={() => search.navigate(1)}><Icon name="arrowDown" /></button>
   </div>;
 }

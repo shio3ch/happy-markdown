@@ -18,7 +18,7 @@ export function FormattingToolbar({ ready, hidden, imageBusy, menus, onAction, o
     <ToolButton id="undo" title="元に戻す（Ctrl+Z）" disabled={!ready} onClick={() => onAction('undo')}><Icon name="undo" /></ToolButton>
     <ToolButton id="redo" title="やり直す（Ctrl+Shift+Z）" disabled={!ready} onClick={() => onAction('redo')}><Icon name="redo" /></ToolButton>
     <HeadingMenu ready={ready} menus={menus} onSelect={level => format('heading', level)} />
-    {button('bold', '太字', <b>B</b>)}{button('italic', '斜体', <i>I</i>)}{button('underline', '下線', <u>U</u>)}{button('strike', '取り消し線', <s>S</s>)}
+    {button('bold', '太字', <Icon name="bold" />)}{button('italic', '斜体', <Icon name="italic" />)}{button('underline', '下線', <Icon name="underline" />)}{button('strike', '取り消し線', <Icon name="strike" />)}
     {button('inline-code', 'インラインコード', <Icon name="inline" />)}
     {button('bullet-list', '箇条書きリスト', <Icon name="bullet" />)}{button('ordered-list', '番号付きリスト', <Icon name="ordered" />)}
     {button('quote', '引用', <Icon name="quote" />)}{button('horizontal-rule', '水平線', <Icon name="hr" />)}{button('link', 'リンク', <Icon name="link" />)}

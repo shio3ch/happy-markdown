@@ -3,7 +3,9 @@ body.workbench { max-width: none; padding: 0; margin: 0; height: 100vh; display:
 body.workbench > #root { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 [hidden] { display: none !important; }
 .workbench-toolbar { display: flex; flex-wrap: wrap; align-items: center; flex: 0 0 auto; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--design-border); background: var(--vscode-editor-background, #fff); font: 12px/1.5 system-ui, sans-serif; }
-.workbench-toolbar button, #conflict button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 5px 10px; border: 1px solid var(--design-border); border-radius: 6px; background: var(--vscode-button-secondaryBackground, var(--design-surface)); color: var(--vscode-button-secondaryForeground, inherit); cursor: pointer; }
+.workbench-toolbar button, #conflict button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 30px; padding: 5px 10px; border: 1px solid var(--design-border); border-radius: 6px; background: var(--vscode-button-secondaryBackground, var(--design-surface)); color: var(--vscode-button-secondaryForeground, inherit); cursor: pointer; }
+.workbench-toolbar button { box-sizing: border-box; font: inherit; line-height: 1; }
+.workbench-toolbar button > svg { display: block; flex: 0 0 auto; }
 .workbench-toolbar button:hover, #conflict button:hover { background: var(--vscode-toolbar-hoverBackground, var(--design-surface)); }
 .workbench-toolbar button:disabled { opacity: 0.5; cursor: default; }
 .workbench-toolbar button:focus-visible { outline: 2px solid var(--vscode-focusBorder, var(--design-accent)); outline-offset: 2px; }
@@ -38,8 +40,10 @@ body.workbench > #root { display: flex; flex-direction: column; flex: 1; min-hei
 /* Ordered, compact controls; the mode switch remains the final rightmost item. */
 .workbench-toolbar { gap: 4px; padding: 8px 12px; position: relative; z-index: 20; }
 #edit-actions { display: contents; }
-.workbench-toolbar .tool-button { width: 32px; min-width: 32px; height: 32px; padding: 6px; font-size: 15px; }
-#mode { margin-left: auto; white-space: nowrap; }
+.workbench-toolbar .tool-button, .workbench-toolbar #image { width: 32px; min-width: 32px; height: 32px; padding: 6px; }
+.workbench-toolbar #heading, .workbench-toolbar #toc { height: 32px; width: 44px; padding: 6px; gap: 4px; }
+.workbench-toolbar #heading > svg:last-child, .workbench-toolbar #toc > svg:last-child { width: 12px; height: 12px; }
+#mode { min-height: 32px; margin-left: auto; white-space: nowrap; }
 #progress { padding: 0 8px; white-space: nowrap; font-size: 11px; }
 .tool-dropdown { position: relative; }
 .tool-options { position: absolute; top: 100%; left: 0; z-index: 30; display: flex; flex-direction: column; min-width: 170px; padding: 5px; border: 1px solid var(--design-border); border-radius: 7px; background: var(--vscode-menu-background, var(--vscode-editor-background, #fff)); color: var(--vscode-menu-foreground, inherit); box-shadow: 0 5px 18px #0003; }

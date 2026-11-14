@@ -57,12 +57,45 @@ test('React preview retains details, scroll and task focus and supports search a
     assert.equal(c.document.getElementById('search-count').textContent, '1 / 3');
     c.document.getElementById('search-next').click();
     await waitFor(() => c.document.getElementById('search-count').textContent === '2 / 3');
+    c.document.getElementById('search-prev').click();
+    await waitFor(() => c.document.getElementById('search-count').textContent === '1 / 3');
+    const search = c.document.getElementById('search');
+    search.dispatchEvent(new c.window.KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true }));
+    await waitFor(() => c.document.getElementById('search-count').textContent === '3 / 3');
+    search.dispatchEvent(new c.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await waitFor(() => c.document.getElementById('search-count').textContent === '1 / 3');
+    await c.input(search, '一致しない語句');
+    assert.equal(c.document.getElementById('search-prev').disabled, true);
+    assert.equal(c.document.getElementById('search-next').disabled, true);
     const toc = c.document.getElementById('toc'); toc.focus();
     toc.dispatchEvent(new c.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
     await waitFor(() => c.document.activeElement === c.document.querySelector('#toc-options button'));
     c.document.activeElement.click();
     await waitFor(() => c.document.getElementById('toc-options').hidden);
     assert.equal(c.document.activeElement, root.querySelector('h1'));
+  } finally { await c.dispose(); }
+});
+
+test('icon toolbar keeps accessible names and keyboard access to heading choices', async () => {
+  const c = await client();
+  try {
+    await c.receive(snapshot('本文'));
+    c.document.getElementById('mode').click();
+    await waitFor(() => c.document.body.dataset.mode === 'edit');
+    for (const id of ['bold', 'italic', 'underline', 'strike', 'heading', 'toc', 'search-prev', 'search-next']) {
+      const button = c.document.getElementById(id);
+      assert.ok(button.getAttribute('aria-label'), `${id}には操作名がある`);
+      assert.ok(button.querySelector('svg[aria-hidden="true"]'), `${id}のアイコンは読み上げ対象外`);
+    }
+    const heading = c.document.getElementById('heading');
+    heading.focus();
+    await waitFor(() => heading.getAttribute('aria-expanded') === 'true');
+    heading.dispatchEvent(new c.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true }));
+    await waitFor(() => c.document.activeElement === c.document.querySelector('#heading-options button'));
+    c.document.activeElement.click();
+    await waitFor(() => c.sent.some(message => message.type === 'edit'));
+    assert.equal(c.sent.find(message => message.type === 'edit').text, '# 本文');
+    await waitFor(() => heading.getAttribute('aria-expanded') === 'false');
   } finally { await c.dispose(); }
 });
 
