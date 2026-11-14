@@ -11,6 +11,8 @@ node --test test/session.test.js
 
 不具合修正では可能なら回帰テストを追加し、期待する挙動を確認します。文書のみの変更は、記載内容・パス・リンク・コマンドの整合性を確認します。
 
+React UIのテストは `test/workbench.test.js`、`test/explorer-search.test.js`、`test/explorer-ui.test.js` です。jsdom上で実際のWebviewバンドルを読み込み、CodeMirrorを維持したモード切り替え、反映待ち、競合したドラフトの復元、本文検索・目次・タスク操作、IME、古い検索応答の無視、結果のフォーカス保持、ファイルツリーの矢印キー・Home / End・文字による移動、右クリックメニュー、ブックマーク一覧を検証します。ホスト側の追従・開閉状態・永続化・世代管理は `test/explorer.test.js` で確認します。アンマウント時の実行時エラーも確認します。jsdomではCodeMirror用の計測APIを補っており、画面レイアウトとCSPの実際の適用はVS Code上で別途確認してください。
+
 ## VS Code上の確認
 
 F5で拡張開発ホストを起動します。起動前のタスクでビルドが実行されます。`wiki` フォルダーをワークスペースとして開き、`wiki/README.md` を入口として資料を確認します。ソース変更後は再ビルドし、開発ホストを再読み込みしてください。拡張ホストのソースマップと `outFiles` を設定しているため、`src/` のTypeScriptにブレークポイントを置けます。

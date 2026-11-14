@@ -1,5 +1,6 @@
 /* Dedicated editing and reading workspace. The toolbar is outside both engines. */
 body.workbench { max-width: none; padding: 0; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+body.workbench > #root { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 [hidden] { display: none !important; }
 .workbench-toolbar { display: flex; flex-wrap: wrap; align-items: center; flex: 0 0 auto; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--design-border); background: var(--vscode-editor-background, #fff); font: 12px/1.5 system-ui, sans-serif; }
 .workbench-toolbar button, #conflict button { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 5px 10px; border: 1px solid var(--design-border); border-radius: 6px; background: var(--vscode-button-secondaryBackground, var(--design-surface)); color: var(--vscode-button-secondaryForeground, inherit); cursor: pointer; }

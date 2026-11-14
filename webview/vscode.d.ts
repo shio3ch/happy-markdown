@@ -1,9 +1,5 @@
-import type { EditorMessage, SearchMessage } from '../shared/messages';
+import type { WebviewApi } from './api';
 
 declare global {
-  function acquireVsCodeApi(): {
-    postMessage(message: EditorMessage | SearchMessage): void;
-    getState(): unknown;
-    setState(state: { mode: 'edit' | 'preview'; draft: string; baseText: string }): void;
-  };
+  function acquireVsCodeApi(): WebviewApi;
 }

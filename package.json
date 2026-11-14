@@ -24,9 +24,10 @@
   "scripts": {
     "test": "npm run build && node --test test/*.test.js",
     "package": "npx --yes @vscode/vsce package",
-    "build": "npm run typecheck && tsc -p tsconfig.json && node scripts/build.cjs",
+    "build": "npm run typecheck && npm run clean && tsc -p tsconfig.json && node scripts/build.cjs",
     "vscode:prepublish": "npm run build",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc -p webview/tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc -p webview/tsconfig.json",
+    "clean": "node scripts/clean.cjs"
   },
   "dependencies": {
     "highlight.js": "^11.12.0",
@@ -91,55 +92,7 @@
     ],
     "menus": {
       "editor/title": [],
-      "view/title": [
-        {
-          "command": "happyMarkdown.showFiles",
-          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search)",
-          "group": "navigation@1"
-        },
-        {
-          "command": "happyMarkdown.showSearch",
-          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search)",
-          "group": "navigation@2"
-        },
-        {
-          "command": "happyMarkdown.showBookmarks",
-          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search)",
-          "group": "navigation@3"
-        },
-        {
-          "command": "happyMarkdown.refreshExplorer",
-          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search)",
-          "group": "navigation@4"
-        },
-        {
-          "command": "happyMarkdown.enableFollowActive",
-          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search) && !happyMarkdown.followActive",
-          "group": "navigation@5"
-        },
-        {
-          "command": "happyMarkdown.disableFollowActive",
-          "when": "(view == happyMarkdown.explorer || view == happyMarkdown.search) && happyMarkdown.followActive",
-          "group": "navigation@5"
-        }
-      ],
-      "view/item/context": [
-        {
-          "command": "happyMarkdown.openSource",
-          "when": "view == happyMarkdown.explorer && viewItem =~ /^(markdownFile|bookmarkedMarkdownFile)$/",
-          "group": "inline"
-        },
-        {
-          "command": "happyMarkdown.addBookmark",
-          "when": "view == happyMarkdown.explorer && viewItem == markdownFile",
-          "group": "inline@1"
-        },
-        {
-          "command": "happyMarkdown.removeBookmark",
-          "when": "view == happyMarkdown.explorer && viewItem == bookmarkedMarkdownFile",
-          "group": "inline@1"
-        }
-      ],
+      "view/title": [],
       "commandPalette": [
         {
           "command": "happyMarkdown.openSource",
@@ -182,25 +135,12 @@
     "views": {
       "happyMarkdown": [
         {
-          "id": "happyMarkdown.explorer",
-          "name": "Markdownエクスプローラー",
-          "when": "happyMarkdown.explorerMode != search"
-        },
-        {
           "type": "webview",
-          "id": "happyMarkdown.search",
-          "name": "Markdownエクスプローラー",
-          "when": "happyMarkdown.explorerMode == search"
+          "id": "happyMarkdown.explorer",
+          "name": "Markdownエクスプローラー"
         }
       ]
-    },
-    "viewsWelcome": [
-      {
-        "view": "happyMarkdown.explorer",
-        "contents": "Markdownを読むフォルダーを開いてください。\n[フォルダーを開く](command:vscode.openFolder)",
-        "when": "workbenchState == empty"
-      }
-    ]
+    }
   },
   "devDependencies": {
     "@codemirror/autocomplete": "^6.20.4",
@@ -214,9 +154,14 @@
     "@lezer/highlight": "^1.2.3",
     "@types/markdown-it": "^14.2.0",
     "@types/node": "^22.20.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@types/sanitize-html": "^2.16.2",
     "@types/vscode": "1.100.0",
     "esbuild": "^0.28.2",
+    "jsdom": "^26.1.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
     "typescript": "^7.0.2"
   }
 }

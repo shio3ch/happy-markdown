@@ -8,10 +8,12 @@
       "DOM",
       "DOM.Iterable"
     ],
-    "noEmit": true
+    "noEmit": true,
+    "jsx": "react-jsx"
   },
   "include": [
     "**/*.ts",
+    "**/*.tsx",
     "../shared/**/*.ts",
     "../src/text-change.ts"
   ]

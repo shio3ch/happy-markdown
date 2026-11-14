@@ -101,3 +101,65 @@ export function isSearchState(value: unknown): value is SearchState {
       Array.isArray(result.matches) && result.matches.every(match => isRecord(match) &&
         isVersion(match.line) && typeof match.text === 'string'));
 }
+
+export type ExplorerMode = 'files' | 'search' | 'bookmarks';
+export type ExplorerMessage = SearchMessage
+  | { type: 'mode'; mode: ExplorerMode }
+  | { type: 'expand'; id: string; expanded: boolean }
+  | { type: 'follow'; enabled: boolean }
+  | { type: 'refresh' | 'openFolder' };
+export interface FileEntry {
+  id: string;
+  label: string;
+  path: string;
+  bookmarked: boolean;
+  active: boolean;
+  icon: { light: string; dark: string };
+  children?: FileEntry[];
+}
+export interface ExplorerState extends SearchState {
+  mode: ExplorerMode;
+  nodes: FileEntry[];
+  expandedIds: string[];
+  followActive: boolean;
+  hasWorkspace: boolean;
+  revealId?: string;
+  revealRevision: number;
+}
+export function isExplorerMode(value: unknown): value is ExplorerMode {
+  return value === 'files' || value === 'search' || value === 'bookmarks';
+}
+export function isExplorerMessage(value: unknown): value is ExplorerMessage {
+  if (isSearchMessage(value)) return true;
+  if (!isRecord(value)) return false;
+  switch (value.type) {
+    case 'mode': return isExplorerMode(value.mode);
+    case 'expand': return typeof value.id === 'string' && typeof value.expanded === 'boolean';
+    case 'follow': return typeof value.enabled === 'boolean';
+    case 'refresh': case 'openFolder': return true;
+    default: return false;
+  }
+}
+function isFileEntries(value: unknown): value is FileEntry[] {
+  if (!Array.isArray(value)) return false;
+  const pending: unknown[] = [...value], seen = new Set<unknown>(), ids = new Set<string>();
+  while (pending.length) {
+    const node = pending.pop();
+    if (!isRecord(node) || seen.has(node) || typeof node.id !== 'string' || ids.has(node.id) ||
+        typeof node.label !== 'string' || typeof node.path !== 'string' || typeof node.bookmarked !== 'boolean' ||
+        typeof node.active !== 'boolean' || !isRecord(node.icon) || typeof node.icon.light !== 'string' || typeof node.icon.dark !== 'string') return false;
+    seen.add(node); ids.add(node.id);
+    if (node.children !== undefined) {
+      if (!Array.isArray(node.children)) return false;
+      node.children.forEach(child => pending.push(child));
+    }
+  }
+  return true;
+}
+export function isExplorerState(value: unknown): value is ExplorerState {
+  return isRecord(value) && isSearchState(value) && isExplorerMode(value.mode) &&
+    isFileEntries(value.nodes) &&
+    Array.isArray(value.expandedIds) && value.expandedIds.every(id => typeof id === 'string') &&
+    typeof value.followActive === 'boolean' && typeof value.hasWorkspace === 'boolean' &&
+    (value.revealId === undefined || typeof value.revealId === 'string') && isVersion(value.revealRevision);
+}

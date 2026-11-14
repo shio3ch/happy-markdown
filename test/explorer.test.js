@@ -25,59 +25,6 @@ test('keeps workspace roots separate and handles empty workspaces', () => {
   assert.deepEqual(buildTree([], [folders[0]], api), []);
 });
 
-test('registers explorer, caches search, refreshes and opens the selected document in the active column', async () => {
-  const commands = new Map();
-  const executed = [];
-  let provider, searches = 0, events = 0, workspaceChanged;
-  const disposable = { dispose() {} };
-  const vscode = {
-    ...api,
-    TabInputText: class { constructor(uri) { this.uri = uri; } },
-    TabInputCustom: class { constructor(uri) { this.uri = uri; } },
-    EventEmitter: class { event = () => disposable; fire() { events++; } dispose() {} },
-    TreeItem: class { constructor(label, state) { this.label = label; this.collapsibleState = state; } },
-    TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
-    ThemeIcon: class { constructor(id) { this.id = id; } },
-    ViewColumn: { Active: -1 },
-    window: { registerWebviewViewProvider: () => disposable, tabGroups: { activeTabGroup: {}, onDidChangeTabs: () => disposable, onDidChangeTabGroups: () => disposable }, createTreeView: (id, options) => { provider = options.treeDataProvider; return { ...disposable, onDidExpandElement: () => disposable, onDidCollapseElement: () => disposable, onDidChangeVisibility: () => disposable }; } },
-    commands: {
-      registerCommand: (id, handler) => { commands.set(id, handler); return disposable; },
-      executeCommand: (...args) => { if (args[0] !== 'setContext') executed.push(args); },
-    },
-    workspace: {
-      ...api.workspace, workspaceFolders: [folders[0]],
-      findFiles: async (include, exclude) => {
-        assert.match(include, /markdown/);
-        assert.match(exclude, /node_modules/);
-        searches++;
-        return [uri('/docs/readme.md')];
-      },
-      createFileSystemWatcher: () => ({ ...disposable, onDidCreate: () => disposable, onDidDelete: () => disposable, onDidChange: () => disposable }),
-      onDidChangeWorkspaceFolders: handler => { workspaceChanged = handler; return disposable; },
-      onDidChangeTextDocument: () => disposable,
-    },
-  };
-  const context = { subscriptions: [], extensionUri: uri('/extension'), workspaceState: { get: () => [], update: async () => {} } };
-  registerExplorer(context, vscode);
-  const children = await provider.getChildren();
-  await provider.getChildren();
-  assert.equal(searches, 1);
-  const item = provider.getTreeItem(children[0]);
-  await commands.get(item.command.command)(...item.command.arguments);
-  assert.equal(executed[0][0], 'vscode.openWith');
-  assert.equal(executed[0][1].path, '/docs/readme.md');
-  assert.equal(executed[0][2], 'happyMarkdown.preview');
-  assert.equal(executed[0][3].viewColumn, -1);
-  commands.get('happyMarkdown.refreshExplorer')();
-  await provider.getChildren();
-  assert.equal(searches, 2);
-  workspaceChanged();
-  assert.equal(events, 2);
-  await commands.get('happyMarkdown.openSource')(children[0]);
-  assert.equal(executed[1][2], 'default');
-  context.subscriptions.forEach(item => item.dispose());
-});
-
 test('search matches literal Japanese and case-insensitive text with CRLF line numbers', () => {
   assert.deepEqual(findMatches('見出し\r\n本文 ABC\r\na.c\r\nabc', 'AbC'), [{ line: 2, text: '本文 ABC' }, { line: 4, text: 'abc' }]);
   assert.deepEqual(findMatches('a.c\nabc', 'a.c'), [{ line: 1, text: 'a.c' }]);
@@ -85,309 +32,192 @@ test('search matches literal Japanese and case-insensitive text with CRLF line n
   assert.deepEqual(findMatches('本文', ''), []);
 });
 
-function explorerHarness(initial = [], followActive = true) {
-  const commands = new Map(), state = new Map([['happyMarkdown.bookmarks', initial], ['happyMarkdown.followActive', followActive]]), warnings = [];
-  const files = ['/docs/first.md', '/docs/second.markdown'].map(uri);
-  const texts = new Map([[files[0].path, '検索対象\nHELLO unsaved'], [files[1].path, 'other\nhello again']]);
-  let provider, searchProvider, receive, view, workspaceChanged, expand, collapse, tabsChanged, groupsChanged, visibilityChanged;
-  const reveals = [], messages = [];
-  let queryRevision = 0;
-  const disposable = { dispose() {} };
-  const vscode = {
-    ...api,
-    TabInputText: class { constructor(uri) { this.uri = uri; } },
-    TabInputCustom: class { constructor(uri) { this.uri = uri; } },
-    EventEmitter: class { event = () => disposable; fire() {} dispose() {} },
-    TreeItem: class { constructor(label, state) { this.label = label; this.collapsibleState = state; } },
-    TreeItemCollapsibleState: { None: 0, Collapsed: 1, Expanded: 2 },
-    ThemeIcon: class { constructor(id) { this.id = id; } },
-    ViewColumn: { Active: -1 },
-    window: {
-      registerWebviewViewProvider: (id, value) => { searchProvider = value; return disposable; },
-      tabGroups: { activeTabGroup: {}, onDidChangeTabs: fn => { tabsChanged = fn; return disposable; }, onDidChangeTabGroups: fn => { groupsChanged = fn; return disposable; } },
-      createTreeView: (id, options) => { provider = options.treeDataProvider; return view = { ...disposable, visible: true, reveal: async (node, options) => { reveals.push({ node, options }); }, onDidChangeVisibility: fn => { visibilityChanged = fn; return disposable; }, onDidExpandElement: fn => { expand = fn; return disposable; }, onDidCollapseElement: fn => { collapse = fn; return disposable; } }; },
+const { explorerHarness, uri: resource } = require('./explorer-harness');
+const { waitFor } = require('./webview-helper');
 
-      showWarningMessage: value => { warnings.push(value); },
-    },
-    commands: { registerCommand: (id, fn) => { commands.set(id, fn); return disposable; }, executeCommand: async () => {} },
-    workspace: {
-      ...api.workspace, workspaceFolders: [folders[0]],
-      findFiles: async () => files,
-      asRelativePath: file => file.path.slice(1),
-      openTextDocument: async file => { if (!texts.has(file.path)) throw new Error('unreadable'); return { getText: () => texts.get(file.path) }; },
-      createFileSystemWatcher: () => ({ ...disposable, onDidCreate: () => disposable, onDidDelete: () => disposable, onDidChange: () => disposable }),
-      onDidChangeWorkspaceFolders: fn => { workspaceChanged = fn; return disposable; },
-      onDidChangeTextDocument: () => disposable,
-    },
-  };
-  const context = { subscriptions: [], extensionUri: uri('/extension'), workspaceState: { get: (key, fallback) => state.get(key) ?? fallback, update: async (key, value) => { state.set(key, value); } } };
-  registerExplorer(context, vscode);
-  searchProvider.resolveWebviewView({ visible: true, onDidChangeVisibility: () => disposable, webview: { cspSource: 'test:', asWebviewUri: value => value.toString(), postMessage: message => { messages.push(message); return Promise.resolve(true); }, onDidReceiveMessage: fn => { receive = fn; return disposable; } } });
-  return { commands, state, files, texts, warnings, vscode, context, reveals, messages, receive: message => receive(message),
-    setQuery: value => receive({ type: 'query', value, requestId: ++queryRevision }),
-    setActive: (input, group = false) => { vscode.window.tabGroups.activeTabGroup.activeTab = input ? { input } : undefined; return group ? groupsChanged() : tabsChanged(); },
-    setVisible: visible => { view.visible = visible; visibilityChanged(); }, get provider() { return provider; }, get view() { return view; },
-     expand: node => expand({ element: node }), collapse: node => collapse({ element: node }), workspaceChanged: () => workspaceChanged(), dispose: () => context.subscriptions.forEach(item => item.dispose()) };
-}
-
-test('switches between file tree, full text search and persistent bookmarks', async () => {
+test('registers one Webview explorer, caches files and opens only known file IDs', async () => {
   const h = explorerHarness();
   try {
-    const files = await h.provider.getChildren();
-    assert.equal(files.length, 2);
-    await h.setQuery('hello');
-    await h.commands.get('happyMarkdown.showSearch')();
-    const matches = await h.provider.getChildren();
-    assert.equal(matches.length, 2);
-    assert.equal(matches[0].matches[0].text, 'HELLO unsaved');
-    assert.equal(h.view.description, '検索');
-    await h.commands.get('happyMarkdown.addBookmark')(matches[1]);
-    assert.deepEqual(h.state.get('happyMarkdown.bookmarks'), ['file:///docs/second.markdown']);
-    h.commands.get('happyMarkdown.showBookmarks')();
-    const saved = await h.provider.getChildren();
-    assert.equal(saved.length, 1);
-    assert.equal(h.provider.getTreeItem(saved[0]).contextValue, 'bookmarkedMarkdownFile');
-    h.commands.get('happyMarkdown.showFiles')();
-    assert.equal((await h.provider.getChildren()).length, 2);
-    await h.commands.get('happyMarkdown.showSearch')();
-    await settleTree();
-    assert.equal(h.messages.at(-1).query, 'hello');
-    assert.equal(h.view.description, '検索');
-    await h.commands.get('happyMarkdown.removeBookmark')(saved[0]);
-    h.commands.get('happyMarkdown.showBookmarks')();
-    assert.deepEqual(await h.provider.getChildren(), []);
+    await h.ready(); await h.ready();
+    assert.equal(h.searches, 1);
+    assert.equal(h.current.nodes.length, 2);
+    assert.equal(h.view.description, 'ファイル一覧');
+    await h.receive({ type: 'open', id: h.current.nodes[0].id });
+    assert.equal(h.executed[0][0], 'vscode.openWith');
+    assert.equal(h.executed[0][2], 'happyMarkdown.preview');
+    assert.equal(h.executed[0][3].viewColumn, -1);
+    await h.receive({ type: 'open', id: 'file:///outside/forged.md' });
+    assert.equal(h.executed.length, 1);
+    await h.commands.get('happyMarkdown.refreshExplorer')();
+    assert.equal(h.searches, 2);
+    await h.receive({ type: 'source', id: h.current.nodes[0].id });
+    assert.equal(h.executed[1][2], 'default');
   } finally { h.dispose(); }
 });
 
-test('restores bookmarks, hides missing files and serializes rapid bookmark changes', async () => {
+test('switches React sidebar modes and persists bookmarks through serialized changes', async () => {
+  const h = explorerHarness();
+  try {
+    await h.ready();
+    await h.setQuery('hello'); await h.mode('search');
+    assert.equal(h.current.results.length, 2);
+    assert.equal(h.current.results[0].matches[0].text, 'HELLO unsaved');
+    await h.receive({ type: 'bookmark', id: h.current.results[1].id });
+    await h.mode('bookmarks');
+    assert.equal(h.current.nodes.length, 1);
+    assert.equal(h.current.nodes[0].bookmarked, true);
+    assert.deepEqual(h.state.get('happyMarkdown.bookmarks'), ['file:///docs/second.markdown']);
+    assert.match(h.current.nodes[0].path, /docs\/second/);
+    await h.mode('files'); assert.equal(h.current.nodes.length, 2);
+    await h.mode('search'); assert.equal(h.current.query, 'hello');
+    await Promise.all([
+      h.commands.get('happyMarkdown.addBookmark')({ uri: h.files[0] }),
+      h.commands.get('happyMarkdown.removeBookmark')({ uri: h.files[1] }),
+    ]);
+    await h.mode('bookmarks');
+    assert.deepEqual(h.current.nodes.map(node => node.id), ['file:///docs/first.md']);
+  } finally { h.dispose(); }
+});
+
+test('restores bookmarks, hides missing files and retains saved state on storage failure', async () => {
   const h = explorerHarness(['file:///docs/first.md', 'file:///docs/missing.md']);
   try {
-    h.commands.get('happyMarkdown.showBookmarks')();
-    assert.equal((await h.provider.getChildren()).length, 1);
-    await Promise.all([
-      h.commands.get('happyMarkdown.addBookmark')({ uri: h.files[1] }),
-      h.commands.get('happyMarkdown.removeBookmark')({ uri: h.files[0] }),
-    ]);
-    assert.deepEqual(h.state.get('happyMarkdown.bookmarks'), ['file:///docs/missing.md', 'file:///docs/second.markdown']);
-    assert.equal((await h.provider.getChildren())[0].uri, h.files[1]);
+    await h.mode('bookmarks');
+    assert.equal(h.current.nodes.length, 1);
+    const update = h.context.workspaceState.update;
+    h.context.workspaceState.update = async () => { throw new Error('storage failure'); };
+    await h.receive({ type: 'bookmark', id: h.current.nodes[0].id });
+    assert.equal(h.current.nodes[0].bookmarked, true);
+    assert.match(h.warnings[0], /保存できませんでした/);
+    h.context.workspaceState.update = update;
+    await h.receive({ type: 'bookmark', id: h.current.nodes[0].id });
+    assert.equal(h.current.nodes.length, 0);
   } finally { h.dispose(); }
 });
 
-test('reports unreadable documents and rejects stale search results after switching modes', async () => {
+test('reports unreadable documents and ignores earlier searches after mode or query changes', async () => {
   const h = explorerHarness();
   try {
     h.texts.delete(h.files[1].path);
-    await h.setQuery('hello');
-    await h.commands.get('happyMarkdown.showSearch')();
-    assert.equal((await h.provider.getChildren()).length, 1);
-    await settleTree();
-    assert.match(h.messages.at(-1).status, /1ファイルを読み込めませんでした/);
+    await h.setQuery('hello'); await h.mode('search');
+    assert.equal(h.current.results.length, 1);
+    assert.match(h.current.status, /1ファイルを読み込めませんでした/);
     let release;
     h.vscode.workspace.openTextDocument = () => new Promise(resolve => { release = resolve; });
-    h.commands.get('happyMarkdown.refreshExplorer')();
-    const pending = h.provider.getChildren();
-    await Promise.resolve();
-    h.commands.get('happyMarkdown.showFiles')();
-    release({ getText: () => 'hello' });
-    assert.deepEqual(await pending, []);
-    assert.equal((await h.provider.getChildren()).length, 2);
-    assert.equal(h.view.description, 'ファイル一覧');
+    const pending = h.commands.get('happyMarkdown.refreshExplorer')();
+    await waitFor(() => release);
+    await h.mode('files');
+    release({ getText: () => 'hello' }); await pending;
+    assert.equal(h.current.mode, 'files'); assert.equal(h.current.nodes.length, 2);
   } finally { h.dispose(); }
 });
 
-test('failed bookmark persistence keeps the previous bookmarks and allows retry', async () => {
-  const h = explorerHarness(['file:///docs/first.md']);
-  try {
-    const update = h.context.workspaceState.update;
-    h.context.workspaceState.update = async () => { throw new Error('storage failure'); };
-    await h.commands.get('happyMarkdown.removeBookmark')({ uri: h.files[0] });
-    h.commands.get('happyMarkdown.showBookmarks')();
-    assert.equal((await h.provider.getChildren()).length, 1);
-    assert.match(h.warnings[0], /保存できませんでした/);
-    h.context.workspaceState.update = update;
-    await h.commands.get('happyMarkdown.removeBookmark')({ uri: h.files[0] });
-    assert.deepEqual(await h.provider.getChildren(), []);
-  } finally { h.dispose(); }
-});
-
-test('shows folder state with explicit icons and retains expansion after refresh and mode switches', async () => {
+test('retains folder expansion and publishes theme icons and child counts across refreshes', async () => {
   const h = explorerHarness();
   try {
-    h.files.push(uri('/docs/nested/guide.md'));
-    let folder = (await h.provider.getChildren()).find(node => node.children);
-    let item = h.provider.getTreeItem(folder);
-    assert.match(item.iconPath.light.path, /light\/folder.svg$/);
-    assert.equal(item.collapsibleState, 1);
-    assert.equal(item.description, '1項目');
-    h.expand(folder);
-    item = h.provider.getTreeItem(folder);
-    assert.match(item.iconPath.dark.path, /dark\/folder-open.svg$/);
-    assert.equal(item.collapsibleState, 2);
-    h.commands.get('happyMarkdown.showBookmarks')();
-    await h.provider.getChildren();
-    h.commands.get('happyMarkdown.showFiles')();
-    folder = (await h.provider.getChildren()).find(node => node.children);
-    assert.equal(h.provider.getTreeItem(folder).collapsibleState, 2);
-    h.collapse(folder);
-    assert.equal(h.provider.getTreeItem(folder).collapsibleState, 1);
-    assert.match(h.provider.getTreeItem(folder).iconPath.dark.path, /dark\/folder.svg$/);
+    h.files.push(resource('/docs/nested/guide.md'));
+    await h.ready();
+    const folder = h.current.nodes.find(node => node.children);
+    assert.equal(folder.children.length, 1);
+    assert.match(folder.icon.light, /light\/folder.svg$/);
+    await h.receive({ type: 'expand', id: folder.id, expanded: true });
+    assert.ok(h.current.expandedIds.includes(folder.id));
+    assert.match(h.current.nodes[0].icon.dark, /dark\/folder-open.svg$/);
+    await h.mode('bookmarks'); await h.mode('files');
+    assert.ok(h.current.expandedIds.includes(folder.id));
+    await h.receive({ type: 'expand', id: folder.id, expanded: false });
+    assert.equal(h.current.expandedIds.includes(folder.id), false);
+    const file = h.current.nodes.find(node => !node.children);
+    await h.receive({ type: 'bookmark', id: file.id });
+    assert.match(h.current.nodes.find(node => node.id === file.id).icon.dark, /document-bookmarked.svg$/);
+    const before = h.current.expandedIds;
+    await h.receive({ type: 'expand', id: file.id, expanded: true });
+    assert.deepEqual(h.current.expandedIds, before);
   } finally { h.dispose(); }
 });
 
-test('uses distinct document and bookmarked document icons in both themes', async () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
+test('follows source/custom tabs, expands ancestors and keeps hidden views closed', async () => {
   const h = explorerHarness();
   try {
-    const node = (await h.provider.getChildren())[0];
-    let item = h.provider.getTreeItem(node);
-    assert.match(item.iconPath.dark.path, /document.svg$/);
-    await h.commands.get('happyMarkdown.addBookmark')(node);
-    item = h.provider.getTreeItem(node);
-    assert.match(item.iconPath.light.path, /document-bookmarked.svg$/);
-    assert.match(item.iconPath.dark.path, /document-bookmarked.svg$/);
-    assert.equal(item.command.command, 'happyMarkdown.openDocument');
-    for (const theme of ['light', 'dark']) for (const name of ['folder', 'folder-open', 'document', 'document-bookmarked']) {
-      assert.ok(fs.existsSync(path.join(__dirname, '..', 'media', 'explorer', theme, `${name}.svg`)));
-    }
-  } finally { h.dispose(); }
-});
-
-const settleTree = () => new Promise(resolve => setImmediate(resolve));
-
-test('tracks custom and source tabs, reveals nested documents without taking keyboard focus', async () => {
-  const h = explorerHarness();
-  try {
-    const nested = uri('/docs/nested/deep/guide.md');
-    h.files.push(nested);
+    const nested = resource('/docs/nested/deep/guide.md'); h.files.push(nested);
     await h.setActive(new h.vscode.TabInputCustom(nested));
-    const selected = h.reveals.at(-1);
-    assert.equal(selected.node.uri, nested);
-    assert.deepEqual(selected.options, { select: true, focus: false, expand: false });
-    const parent = await h.provider.getParent(selected.node);
-    assert.equal(parent.label, 'deep');
-    assert.equal((await h.provider.getParent(parent)).label, 'nested');
-    assert.equal(await h.provider.getParent(await h.provider.getParent(parent)), undefined);
-    assert.equal(h.provider.getTreeItem(selected.node).description, '表示中');
+    assert.equal(h.current.revealId, nested.toString());
+    assert.equal(h.current.expandedIds.length, 2);
+    assert.equal(h.current.nodes[0].children[0].children[0].active, true);
     await h.setActive(new h.vscode.TabInputText(h.files[0]), true);
-    assert.equal(h.reveals.at(-1).node.uri, h.files[0]);
-    assert.equal(h.provider.getTreeItem(selected.node).description, undefined);
-    await h.setActive(new h.vscode.TabInputText(uri('/docs/script.js')));
-    assert.equal(h.provider.getTreeItem(h.reveals.at(-1).node).description, undefined);
-  } finally { h.dispose(); }
-});
-
-test('keeps embedded search mode and marks only matching active documents', async () => {
-  const h = explorerHarness();
-  try {
-    await h.setQuery('unsaved');
-    await h.commands.get('happyMarkdown.showSearch')();
-    await h.setActive(new h.vscode.TabInputCustom(h.files[0]));
-    await settleTree();
-    assert.equal(h.messages.at(-1).results[0].active, true);
-    await h.setActive(new h.vscode.TabInputCustom(h.files[1]));
-    await settleTree();
-    assert.equal(h.messages.at(-1).results[0].active, false);
-    assert.equal(h.reveals.length, 0);
-    assert.equal(h.view.description, '検索');
-    await h.commands.get('happyMarkdown.addBookmark')({ uri: h.files[1] });
-    h.commands.get('happyMarkdown.showBookmarks')();
-    await settleTree();
-    assert.equal(h.reveals.at(-1).node.uri, h.files[1]);
-  } finally { h.dispose(); }
-});
-
-test('does not open hidden views, and restores active selection on visibility and refresh', async () => {
-  const h = explorerHarness();
-  try {
+    assert.equal(h.current.revealId, h.files[0].toString());
     h.setVisible(false);
-    await h.setActive(new h.vscode.TabInputCustom(h.files[0]));
-    assert.equal(h.reveals.length, 0);
+    const previous = h.current.revealRevision;
+    await h.setActive(new h.vscode.TabInputCustom(h.files[1]));
+    assert.equal(h.current.revealRevision, previous);
+    assert.equal(h.executed.length, 0);
     h.setVisible(true);
-    await settleTree();
-    assert.equal(h.reveals.at(-1).node.uri, h.files[0]);
-    const previous = h.reveals.at(-1).node;
-    h.commands.get('happyMarkdown.refreshExplorer')();
-    await settleTree();
-    assert.equal(h.reveals.at(-1).node.uri, h.files[0]);
-    assert.notEqual(h.reveals.at(-1).node, previous);
-    const count = h.reveals.length;
-    await h.setActive(new h.vscode.TabInputCustom(uri('/outside/not-in-workspace.md')));
-    assert.equal(h.reveals.length, count);
+    await waitFor(() => h.current.revealId === h.files[1].toString() && !h.current.busy);
+    await h.setActive(new h.vscode.TabInputText(resource('/docs/script.js')));
+    assert.equal(h.current.nodes.some(node => node.active), false);
   } finally { h.dispose(); }
 });
 
-test('ignores stale active tab requests while the tree is loading', async () => {
+test('follows the latest active tab when a prior file lookup is still pending', async () => {
   const h = explorerHarness();
   try {
     let release;
     h.vscode.workspace.findFiles = () => new Promise(resolve => { release = resolve; });
     const first = h.setActive(new h.vscode.TabInputCustom(h.files[0]));
     const second = h.setActive(new h.vscode.TabInputCustom(h.files[1]));
-    release(h.files);
-    await Promise.all([first, second]);
-    assert.deepEqual(h.reveals.map(call => call.node.uri), [h.files[1]]);
-    await h.setActive(undefined);
-    assert.equal(h.provider.getTreeItem(h.reveals[0].node).description, undefined);
+    release(h.files); await Promise.all([first, second]);
+    assert.equal(h.current.revealId, h.files[1].toString());
+    assert.equal(h.current.nodes.filter(node => node.active).length, 1);
   } finally { h.dispose(); }
 });
 
-test('toggles following, saves the preference and resumes at the current document', async () => {
-  const h = explorerHarness();
-  try {
-    await h.setActive(new h.vscode.TabInputCustom(h.files[0]));
-    const count = h.reveals.length;
-    await h.commands.get('happyMarkdown.disableFollowActive')();
-    assert.equal(h.state.get('happyMarkdown.followActive'), false);
-    assert.equal(h.provider.getTreeItem(h.reveals.at(-1).node).description, undefined);
-    await h.setActive(new h.vscode.TabInputCustom(h.files[1]));
-    h.commands.get('happyMarkdown.refreshExplorer')();
-    await settleTree();
-    assert.equal(h.reveals.length, count);
-    await h.commands.get('happyMarkdown.enableFollowActive')();
-    await settleTree();
-    assert.equal(h.state.get('happyMarkdown.followActive'), true);
-    assert.equal(h.reveals.at(-1).node.uri, h.files[1]);
-    assert.equal(h.provider.getTreeItem(h.reveals.at(-1).node).description, '表示中');
-  } finally { h.dispose(); }
-});
-
-test('restores disabled following and retains the previous preference if saving fails', async () => {
+test('follow preference persists, resumes at the current document and survives storage errors', async () => {
   const h = explorerHarness([], false);
   try {
-    await h.setActive(new h.vscode.TabInputText(h.files[0]));
-    assert.equal(h.reveals.length, 0);
-    const nodes = await h.provider.getChildren();
-    assert.equal(h.provider.getTreeItem(nodes[0]).description, undefined);
+    await h.setActive(new h.vscode.TabInputCustom(h.files[0]));
+    assert.equal(h.current.nodes[0].active, false);
+    const update = h.context.workspaceState.update;
     h.context.workspaceState.update = async () => { throw new Error('storage failure'); };
-    await h.commands.get('happyMarkdown.enableFollowActive')();
+    await h.receive({ type: 'follow', enabled: true });
+    assert.equal(h.current.followActive, false);
     assert.match(h.warnings[0], /追従設定を保存できませんでした/);
-    assert.equal(h.state.get('happyMarkdown.followActive'), false);
-    assert.equal(h.reveals.length, 0);
+    h.context.workspaceState.update = update;
+    await h.receive({ type: 'follow', enabled: true });
+    assert.equal(h.state.get('happyMarkdown.followActive'), true);
+    assert.equal(h.current.revealId, h.files[0].toString());
+    await h.commands.get('happyMarkdown.disableFollowActive')();
+    assert.equal(h.current.followActive, false);
+    assert.equal(h.current.nodes.some(node => node.active), false);
   } finally { h.dispose(); }
 });
 
-test('updates embedded results from input alone and ignores invalid messages and unknown file actions', async () => {
+test('search highlights matching active documents without switching away from search', async () => {
   const h = explorerHarness();
   try {
-    await h.commands.get('happyMarkdown.showSearch')();
-    await h.setQuery('hello');
-    await new Promise(resolve => setTimeout(resolve, 130));
-    const state = h.messages.at(-1);
-    assert.equal(state.busy, false);
-    assert.equal(state.results.length, 2);
-    assert.equal(state.results[0].matches[0].text, 'HELLO unsaved');
-    await h.receive({ type: 'query', value: 'other', requestId: -1 });
-    await h.receive({ type: 'query', value: 'other', requestId: state.requestId });
-    await h.receive({ type: 'query', value: {}, requestId: state.requestId + 1 });
-    await h.receive({ type: 'bookmark', id: 'file:///outside/untrusted.md' });
+    await h.setQuery('unsaved'); await h.mode('search');
+    await h.setActive(new h.vscode.TabInputCustom(h.files[0]));
+    assert.equal(h.current.results[0].active, true);
+    assert.equal(h.current.mode, 'search');
+    await h.setActive(new h.vscode.TabInputCustom(h.files[1]));
+    assert.equal(h.current.results[0].active, false);
+    assert.equal(h.current.revealId, undefined);
+  } finally { h.dispose(); }
+});
+
+test('input triggers search and rejects malformed, duplicate and unknown file actions', async () => {
+  const h = explorerHarness();
+  try {
+    await h.mode('search'); await h.setQuery('hello');
+    await waitFor(() => !h.current.busy && h.current.results.length === 2);
+    const state = h.current;
+    for (const message of [null, { type: 'mode', mode: 'invalid' }, { type: 'query', value: 'other', requestId: -1 },
+      { type: 'query', value: 'other', requestId: state.requestId }, { type: 'query', value: {}, requestId: state.requestId + 1 },
+      { type: 'bookmark', id: 'file:///outside/untrusted.md' }, { type: 'expand', id: state.results[0].id, expanded: 'yes' }]) await h.receive(message);
+    assert.equal(h.current.query, 'hello');
     assert.deepEqual(h.state.get('happyMarkdown.bookmarks'), []);
     await h.receive({ type: 'bookmark', id: state.results[0].id });
-    await settleTree();
     assert.deepEqual(h.state.get('happyMarkdown.bookmarks'), [state.results[0].id]);
-    assert.equal(h.messages.at(-1).query, 'hello');
-    await h.setQuery('');
-    assert.equal(h.messages.at(-1).results.length, 0);
+    await h.setQuery(''); assert.equal(h.current.results.length, 0);
   } finally { h.dispose(); }
 });
 
@@ -396,18 +226,36 @@ test('slow earlier searches never overwrite newer input', async () => {
   try {
     let release;
     const open = h.vscode.workspace.openTextDocument;
-    h.vscode.workspace.openTextDocument = async file => {
-      if (!release) await new Promise(resolve => { release = resolve; });
-      return open(file);
-    };
-    await h.setQuery('other');
-    await h.commands.get('happyMarkdown.showSearch')();
-    await settleTree();
-    await h.setQuery('unsaved');
-    release();
-    await new Promise(resolve => setTimeout(resolve, 130));
-    assert.equal(h.messages.at(-1).query, 'unsaved');
-    assert.equal(h.messages.at(-1).results.length, 1);
-    assert.equal(h.messages.at(-1).results[0].label, 'first.md');
+    h.vscode.workspace.openTextDocument = async file => { if (!release) await new Promise(resolve => { release = resolve; }); return open(file); };
+    await h.setQuery('other'); const pending = h.mode('search');
+    await waitFor(() => release);
+    await h.setQuery('unsaved'); release(); await pending;
+    await waitFor(() => !h.current.busy && h.current.query === 'unsaved');
+    assert.equal(h.current.results.length, 1);
+    assert.equal(h.current.results[0].label, 'first.md');
   } finally { h.dispose(); }
+});
+
+test('workspace changes, lookup failures and empty workspaces can be refreshed safely', async () => {
+  const h = explorerHarness();
+  try {
+    const find = h.vscode.workspace.findFiles;
+    h.vscode.workspace.findFiles = async () => { throw new Error('file search failed'); };
+    await h.ready(); assert.match(h.current.status, /再試行/);
+    h.vscode.workspace.findFiles = find;
+    await h.callbacks.workspace(); assert.equal(h.current.nodes.length, 2);
+    h.vscode.workspace.workspaceFolders = [];
+    await h.commands.get('happyMarkdown.refreshExplorer')();
+    assert.equal(h.current.hasWorkspace, false);
+    await h.receive({ type: 'openFolder' });
+    assert.equal(h.executed.at(-1)[0], 'vscode.openFolder');
+    const roots = h.view.webview.options.localResourceRoots.map(item => item.path);
+    assert.deepEqual(roots, ['/extension/styles', '/extension/dist', '/extension/media/explorer']);
+    assert.match(h.view.webview.html, /img-src test:/);
+  } finally { h.dispose(); }
+});
+
+test('contributes a single React Webview instead of native TreeView and a separate search view', () => {
+  const pkg = require('../package.json');
+  assert.deepEqual(pkg.contributes.views.happyMarkdown, [{ type: 'webview', id: 'happyMarkdown.explorer', name: 'Markdownエクスプローラー' }]);
 });

@@ -47,3 +47,22 @@ test('search state validates nested results and excerpts', () => {
     assert.equal(isSearchState({ ...state, results }), false);
   }
 });
+
+test('explorer protocol validates modes, expansion and nested file entries', () => {
+  const { isExplorerMessage, isExplorerState } = require('../dist/shared/messages');
+  assert.equal(isExplorerMessage({ type: 'mode', mode: 'bookmarks' }), true);
+  assert.equal(isExplorerMessage({ type: 'expand', id: 'folder', expanded: true }), true);
+  for (const value of [{ type: 'mode', mode: 'unknown' }, { type: 'expand', id: 'folder', expanded: 'yes' }, { type: 'follow', enabled: 1 }]) {
+    assert.equal(isExplorerMessage(value), false);
+  }
+  const node = { id: 'folder', label: '入門', path: '/docs/入門', bookmarked: false, active: false, icon: { light: 'light.svg', dark: 'dark.svg' }, children: [] };
+  const state = { type: 'state', mode: 'files', busy: false, query: '', requestId: 0, status: '', results: [], nodes: [node],
+    expandedIds: ['folder'], followActive: true, hasWorkspace: true, revealRevision: 0 };
+  assert.equal(isExplorerState(state), true);
+  const circular = { ...node }; circular.children = [circular];
+  assert.equal(isExplorerState({ ...state, nodes: [circular] }), false);
+  assert.equal(isExplorerState({ ...state, nodes: [node, node] }), false);
+  for (const value of [{ ...state, nodes: [{ ...node, children: [null] }] }, { ...state, nodes: [{ ...node, icon: {} }] }, { ...state, expandedIds: [42] }]) {
+    assert.equal(isExplorerState(value), false);
+  }
+});

@@ -39,7 +39,8 @@ export function createEditor(parent: HTMLElement, onChange: (text: string) => vo
     EditorView.updateListener.of(update => { if (update.docChanged && !remote) onChange(update.state.doc.toString()); }),
     EditorView.contentAttributes.of({ 'aria-label': 'Markdown本文を編集', spellcheck: 'false' }),
   ] }) });
-  new MutationObserver(() => view.dispatch({ effects: palette.reconfigure(highlight(dark())) })).observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  const observer = new MutationObserver(() => view.dispatch({ effects: palette.reconfigure(highlight(dark())) }));
+  observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
   function setText(text: string) {
     const delta = textChange(view.state.doc.toString(), text);
     if (!delta) return;
@@ -93,5 +94,6 @@ export function createEditor(parent: HTMLElement, onChange: (text: string) => vo
     view.focus();
   }
 
-  return { view, setText, format, focus: () => view.focus(), find: () => openSearchPanel(view) };
+  return { view, setText, format, focus: () => view.focus(), find: () => openSearchPanel(view),
+    measure: () => view.requestMeasure(), destroy: () => { observer.disconnect(); view.destroy(); } };
 }
