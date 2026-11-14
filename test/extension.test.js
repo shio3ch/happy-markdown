@@ -12,7 +12,7 @@ test('host synchronizes drafts, rejects stale updates, saves and toggles tasks',
   text=text.slice(0,start)+edit.value+text.slice(end);version++;document.isDirty=true;changed({document});return true;
  }}};
  const mod={exports:{}};
- vm.runInNewContext(fs.readFileSync(require.resolve('../src/extension'),'utf8'),{module:mod,URL,require:name=>name==='vscode'?vscode:name==='./explorer'?{registerExplorer(){}}:name.startsWith('./')?require('../src/'+name.slice(2)):require(name)});
+ vm.runInNewContext(fs.readFileSync(require.resolve('../dist/src/extension'),'utf8'),{module:mod,exports:mod.exports,URL,require:name=>name==='vscode'?vscode:name==='./explorer'?{registerExplorer(){}}:name.startsWith('.')?require(require('node:path').resolve(__dirname, '../dist/src', name)):require(name)});
  mod.exports.activate({subscriptions:[],extensionUri:uri});
  provider.resolveCustomTextEditor(document,{active:true,webview:{cspSource:'https://test',asWebviewUri:()=> 'https://test/file',postMessage:m=>sent.push(m),onDidReceiveMessage:fn=>{receive=fn;return noop;}},onDidDispose(){}});
  await receive({type:'ready'});assert.equal(sent.at(-1).text,'- [ ] task\n');

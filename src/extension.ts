@@ -1,15 +1,17 @@
-'use strict';
-const vscode = require('vscode');
-const { registerExplorer } = require('./explorer');
-const { renderMarkdown, taskEdit } = require('./markdown');
-const { textChange } = require('./text-change');
-const { pickImage } = require('./images');
-const { shell } = require('./shell');
+import * as vscode from 'vscode';
+import { isEditorMessage } from '../shared/messages';
+import type { DocumentSnapshot, ImageResult } from '../shared/messages';
+import type { Task } from './markdown';
+import { registerExplorer } from './explorer';
+import { renderMarkdown, taskEdit } from './markdown';
+import { textChange } from './text-change';
+import { pickImage } from './images';
+import { shell } from './shell';
 
-function activate(context) {
+export function activate(context: vscode.ExtensionContext) {
   registerExplorer(context, vscode);
   const viewType = 'happyMarkdown.preview';
-  context.subscriptions.push(vscode.commands.registerCommand('happyMarkdown.openPreview', async uri => {
+  context.subscriptions.push(vscode.commands.registerCommand('happyMarkdown.openPreview', async (uri?: vscode.Uri) => {
     const resource = uri || vscode.window.activeTextEditor?.document.uri;
     if (resource) await vscode.commands.executeCommand('vscode.openWith', resource, viewType, { viewColumn: vscode.ViewColumn.Active, preview: false });
   }));
@@ -18,9 +20,9 @@ function activate(context) {
       const webview = panel.webview;
       webview.options = { enableScripts: true, localResourceRoots: [context.extensionUri, vscode.Uri.joinPath(document.uri, '..')] };
       webview.html = shell(webview, path => webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, path)));
-      let tasks = new Map(), disposed = false, applying = false;
+      let tasks = new Map<string, Task>(), disposed = false, applying = false;
       let operations = Promise.resolve();
-      const update = (extra = {}) => {
+      const update = (extra: Partial<Pick<DocumentSnapshot, 'id' | 'rejected' | 'message'>> = {}) => {
         if (disposed) return;
         const rendered = renderMarkdown(document.getText(), {
           imageUri: value => {
@@ -31,9 +33,9 @@ function activate(context) {
         });
         tasks = rendered.tasks;
         void webview.postMessage({ type: 'snapshot', text: document.getText().replace(/\r\n/g, '\n'), html: rendered.html,
-          version: document.version, dirty: document.isDirty, ...extra });
+          version: document.version, dirty: document.isDirty, ...extra } satisfies DocumentSnapshot);
       };
-      const apply = async (change, extra) => {
+      const apply = async (change: vscode.WorkspaceEdit, extra: Partial<Pick<DocumentSnapshot, 'id' | 'rejected' | 'message'>>) => {
         applying = true;
         try {
           const applied = await vscode.workspace.applyEdit(change);
@@ -42,8 +44,8 @@ function activate(context) {
           update({ ...extra, rejected: true, message: '変更を反映できませんでした。入力内容は画面に保持しています。' });
         } finally { applying = false; }
       };
-      const handle = async message => {
-        if (disposed || !message) return;
+      const handle = async (message: unknown) => {
+        if (disposed || !isEditorMessage(message)) return;
         if (message.type === 'ready') return update();
         if (message.type === 'edit') {
           if (typeof message.text !== 'string' || !Number.isSafeInteger(message.id)) return;
@@ -58,9 +60,9 @@ function activate(context) {
         if (message.type === 'pickImage') {
           try {
             const result = await pickImage(vscode, document);
-            if (!disposed) await webview.postMessage({type:'imageResult', ...result});
+            if (!disposed) await webview.postMessage({type:'imageResult', ...result} satisfies ImageResult);
           } catch {
-            if (!disposed) await webview.postMessage({type:'imageResult', message:'画像を追加できませんでした。ファイルや保存先の権限を確認してください。'});
+            if (!disposed) await webview.postMessage({type:'imageResult', message:'画像を追加できませんでした。ファイルや保存先の権限を確認してください。'} satisfies ImageResult);
           }
           return;
         }
@@ -96,8 +98,8 @@ function activate(context) {
           if (!applying && event.document.uri.toString() === document.uri.toString()) update();
         }),
         vscode.workspace.onDidSaveTextDocument(saved => { if (saved.uri.toString() === document.uri.toString()) update(); }),
-        webview.onDidReceiveMessage(message => {
-          operations = operations.then(() => handle(message)).catch(() => update({ id: message?.id, rejected: true, message: '操作を完了できませんでした。' }));
+        webview.onDidReceiveMessage((message: unknown) => {
+          operations = operations.then(() => handle(message)).catch(() => update({ id: isEditorMessage(message) && message.type === 'edit' ? message.id : undefined, rejected: true, message: '操作を完了できませんでした。' }));
           return operations;
         }),
       ];
@@ -105,4 +107,3 @@ function activate(context) {
     },
   }, { supportsMultipleEditorsPerDocument: false, webviewOptions: { retainContextWhenHidden: true } }));
 }
-module.exports = { activate };

@@ -4,6 +4,6 @@
     "label": "Happy Markdown: build",
     "type": "shell",
     "command": "npm run build",
-    "problemMatcher": []
+    "problemMatcher": ["$tsc"]
   }]
 }

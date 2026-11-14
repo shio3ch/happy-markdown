@@ -1,8 +1,8 @@
 'use strict';
 const {test}=require('node:test');
 const assert=require('node:assert/strict');
-const {DocumentSession}=require('../webview/session');
-const {textChange}=require('../src/text-change');
+const {DocumentSession}=require('../dist/webview/session');
+const {textChange}=require('../dist/src/text-change');
 function setup() {const sent=[];const s=new DocumentSession(message=>sent.push(message),()=>{});s.receive({text:'a',version:1});return {s,sent};}
 test('serializes rapid typing and never rolls a newer draft back to an older ack',async()=>{
  const {s,sent}=setup();s.edit('ab');s.pump();s.edit('abc');s.pump();assert.equal(sent.length,1);

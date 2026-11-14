@@ -1,13 +1,16 @@
+import { elementById as $ } from './dom';
+import { isRecord, isDocumentSnapshot, isImageResult } from '../shared/messages';
+import type { DocumentAction, EditorMessage } from '../shared/messages';
 import { createEditor } from './editor';
 import { createPreview } from './preview';
 import { DocumentSession } from './session';
 
 const vscode = acquireVsCodeApi();
-const $ = id => document.getElementById(id);
-const restored = vscode.getState();
-let mode = restored?.mode === 'edit' ? 'edit' : 'preview';
-let editor, ready = false, switching = false;
-const send = message => vscode.postMessage(message);
+const state = vscode.getState();
+const restored = isRecord(state) ? state : undefined;
+let mode: 'edit' | 'preview' = restored?.mode === 'edit' ? 'edit' : 'preview';
+let editor: ReturnType<typeof createEditor>, ready = false, switching = false;
+const send = (message: EditorMessage) => vscode.postMessage(message);
 const session = new DocumentSession(send, refresh);
 const preview = createPreview($('document'), send);
 editor = createEditor($('editor'), text => {
@@ -30,14 +33,14 @@ function showMode() {
   $('editor').hidden = mode !== 'edit';
   $('edit-actions').hidden = mode !== 'edit';
   $('document').hidden = mode !== 'preview';
-  document.querySelector('.document-search').hidden = mode !== 'preview';
+  document.querySelector<HTMLElement>('.document-search')!.hidden = mode !== 'preview';
   $('mode-label').textContent = mode === 'edit' ? 'プレビュー' : '編集する';
   $('mode').setAttribute('aria-pressed', String(mode === 'edit'));
   $('mode').title = mode === 'edit' ? 'プレビューへ切り替え' : 'テキスト編集へ切り替え';
   if (mode === 'edit') { editor.view.requestMeasure(); editor.focus(); }
   persist();
 }
-async function action(type) {
+async function action(type: DocumentAction) {
   if (!ready) return;
   if (await session.flush()) send({ type });
 }
@@ -48,13 +51,13 @@ $('mode').addEventListener('click', async () => {
     if (await session.flush()) { mode = mode === 'edit' ? 'preview' : 'edit'; showMode(); }
   } finally { switching = false; }
 });
-for (const id of ['save','undo','redo']) $(id).addEventListener('click', () => action(id));
-for (const id of ['bold','italic','underline','strike','inline-code','bullet-list','ordered-list','quote','horizontal-rule','link','image-url','table','code']) {
+for (const id of ['save','undo','redo'] as const) $(id).addEventListener('click', () => action(id));
+for (const id of ['bold','italic','underline','strike','inline-code','bullet-list','ordered-list','quote','horizontal-rule','link','image-url','table','code'] as const) {
   const kind = id;
   $(id).addEventListener('mousedown', event => event.preventDefault());
   $(id).addEventListener('click', () => { if (ready) { editor.format(kind); closeMenus(); } });
 }
-const menus = [];
+const menus: { close(focus?: boolean): void }[] = [];
 function closeMenus() { menus.forEach(menu => menu.close()); }
 for (const name of ['heading','image','toc']) {
   const container = $(name+'-menu'), trigger=$(name), options=$(name+'-options');
@@ -81,15 +84,15 @@ for (const name of ['heading','image','toc']) {
     if(event.key==='Escape'){event.preventDefault();close(true);return;}
     if(event.key==='ArrowDown'||event.key==='ArrowUp'){
       event.preventDefault();if(options.hidden)open();
-      const buttons=[...options.querySelectorAll('button')];const index=buttons.indexOf(document.activeElement);
+      const buttons=[...options.querySelectorAll('button')];const index=buttons.findIndex(button => button === document.activeElement);
       if (!buttons.length) return;
       buttons[index < 0 ? (event.key==='ArrowDown'?0:buttons.length-1) : (index+(event.key==='ArrowDown'?1:-1)+buttons.length)%buttons.length].focus();
     }
   });
   options.querySelectorAll('button').forEach(button=>button.addEventListener('mousedown',event=>event.preventDefault()));
 }
-document.addEventListener('pointerdown',event=>{if(!event.target.closest('.tool-dropdown'))closeMenus();});
-document.querySelectorAll('[data-heading]').forEach(button=>button.addEventListener('click',()=>{
+document.addEventListener('pointerdown',event=>{if(!(event.target instanceof Element) || !event.target.closest('.tool-dropdown'))closeMenus();});
+document.querySelectorAll<HTMLButtonElement>('[data-heading]').forEach(button=>button.addEventListener('click',()=>{
   if(ready)editor.format('heading',Number(button.dataset.heading));closeMenus();
 }));
 $('image-file').addEventListener('click',async()=>{
@@ -110,14 +113,14 @@ document.addEventListener('keydown', event => {
   }
 });
 window.addEventListener('message', event => {
-  const message = event.data;
-  if (message?.type === 'imageResult') {
+  const message: unknown = event.data;
+  if (isImageResult(message)) {
     $('image-file').disabled = false;
     if (message.path) editor.format('image-file', message.path);
     if (message.message) $('message').textContent = message.message;
     editor.focus(); return;
   }
-  if (message?.type !== 'snapshot') return;
+  if (!isDocumentSnapshot(message)) return;
   session.receive(message);
   preview.render(message);
   $('message').textContent = message.message || '';

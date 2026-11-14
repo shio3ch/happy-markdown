@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { buildTree, findMatches, registerExplorer } = require('../src/explorer');
+const { buildTree, findMatches, registerExplorer } = require('../dist/src/explorer');
 const uri = path => ({ path, fsPath: path, toString: () => `file://${path}` });
 const folders = [{ name: 'docs', uri: uri('/docs') }, { name: 'other', uri: uri('/other') }];
 const api = {

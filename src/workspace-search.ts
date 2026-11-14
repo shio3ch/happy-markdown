@@ -1,6 +1,8 @@
-'use strict';
+import type * as VSCode from 'vscode';
+import type { SearchMatch } from '../shared/messages';
+import type { SearchNode } from './types';
 
-function findMatches(text, query) {
+export function findMatches(text: string, query: string): SearchMatch[] {
   const needle = query.toLocaleLowerCase();
   if (!needle) return [];
   return text.split(/\r?\n/).flatMap((line, index) => {
@@ -12,8 +14,8 @@ function findMatches(text, query) {
 }
 
 // Keep criteria separate from the sidebar UI so metadata conditions can be added here.
-async function searchDocuments(vscode, files, criteria, isCurrent) {
-  const nodes = [];
+export async function searchDocuments(vscode: typeof VSCode, files: VSCode.Uri[], criteria: { text: string }, isCurrent: () => boolean) {
+  const nodes: SearchNode[] = [];
   let failed = 0;
   if (!criteria.text) return { nodes, failed };
   for (const uri of files) {
@@ -21,11 +23,9 @@ async function searchDocuments(vscode, files, criteria, isCurrent) {
     try {
       const document = await vscode.workspace.openTextDocument(uri);
       const matches = findMatches(document.getText(), criteria.text);
-      if (matches.length) nodes.push({ label: uri.path.split('/').at(-1), uri,
+      if (matches.length) nodes.push({ label: uri.path.split('/').at(-1)!, uri,
         description: vscode.workspace.asRelativePath(uri, true), matches });
     } catch { failed++; }
   }
   return { nodes, failed };
 }
-
-module.exports = { findMatches, searchDocuments };

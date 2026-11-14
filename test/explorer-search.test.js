@@ -3,8 +3,8 @@ const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
-const { searchShell } = require('../src/explorer-search');
-const { findMatches } = require('../src/workspace-search');
+const { searchShell } = require('../dist/src/explorer-search');
+const { findMatches } = require('../dist/src/workspace-search');
 
 function client() {
   class Element {
@@ -20,12 +20,12 @@ function client() {
   const elements = Object.fromEntries(['query', 'results', 'status', 'clear'].map(id => [id, new Element('div')]));
   const sent = [];
   let receive;
-  vm.runInNewContext(fs.readFileSync(require.resolve('../webview/explorer-search'), 'utf8'), {
+  vm.runInNewContext(fs.readFileSync(require.resolve('../dist/explorer-search.js'), 'utf8'), {
     acquireVsCodeApi: () => ({ postMessage: value => sent.push(value) }),
     document: { getElementById: id => elements[id], createElement: tag => new Element(tag), createTextNode: text => ({ textContent: text }), createDocumentFragment: () => new Element('fragment') },
     window: { addEventListener: (type, fn) => { receive = fn; } },
   });
-  return { elements, sent, receive: state => receive({ data: { type: 'state', results: [], status: '', query: '', requestId: 0, ...state } }) };
+  return { elements, sent, receive: state => receive({ data: { type: 'state', results: [], busy: false, status: '', query: '', requestId: 0, ...state } }) };
 }
 
 test('client searches on input, waits for IME composition and ignores old responses', () => {
@@ -50,10 +50,18 @@ test('client searches on input, waits for IME composition and ignores old respon
 
 test('client renders HTML-like filenames and excerpts as text, without parsing markup', () => {
   const c = client();
-  c.receive({ query: 'script', results: [{ id: 'safe', label: '<script>alert(1)</script>', path: '<img onerror=x>', count: 1, matches: [{ line: 1, text: '<script>text</script>' }] }] });
+  c.receive({ query: 'script', results: [{ id: 'safe', label: '<script>alert(1)</script>', path: '<img onerror=x>', count: 1, bookmarked: false, active: false, matches: [{ line: 1, text: '<script>text</script>' }] }] });
   const text = node => [node.textContent || '', ...node.children?.map(text) || []].join('');
   assert.match(text(c.elements.results), /<script>alert\(1\)<\/script>/);
   assert.match(text(c.elements.results), /<img onerror=x>/);
+});
+
+test('client ignores malformed state without clearing the current results', () => {
+  const c = client();
+  c.receive({ status: '現在の結果' });
+  c.receive({ status: '不正な結果', results: [null] });
+  c.receive({ status: '不正な検索語', query: {} });
+  assert.equal(c.elements.status.textContent, '現在の結果');
 });
 
 test('search shell enforces CSP and loads only bundled scripts and styles', () => {

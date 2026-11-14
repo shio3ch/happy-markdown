@@ -21,9 +21,9 @@
 
 構成と各ファイルの責務は [wiki/design/architecture.md](wiki/design/architecture.md) を参照する。
 
-- JavaScriptと既存ファイルのモジュール形式・命名・スタイルに合わせる。依頼なくTypeScriptや別フレームワークへ移行しない。
+- アプリ本体はTypeScriptで記述し、既存の命名・スタイルに合わせる。型検査はstrictを維持し、依頼なくReactなどの別フレームワークへ移行しない。テストとビルド起動スクリプトは既存のCommonJS形式を使用する。
 - VS Code APIへの依存は拡張ホスト側に置き、Webviewへ直接持ち込まない。
-- サイドバーのファイル一覧・ブックマークはTreeView、検索はWebviewViewを使う。検索条件と本文検索処理は `src/workspace-search.js` に分離し、入力ID・検索世代の整合性を維持する。
+- サイドバーのファイル一覧・ブックマークはTreeView、検索はWebviewViewを使う。検索条件と本文検索処理は `src/workspace-search.ts` に分離し、入力ID・検索世代の整合性を維持する。
 - `dist/` は生成物。直接編集せず `npm run build` で生成する。
 - UIの文言は日本語を基本とし、ライト・ダークテーマ、キーボード操作、フォーカス表示を維持する。
 
@@ -50,15 +50,16 @@
 
 ```sh
 npm ci
+npm run typecheck
 npm run build
 npm test
 ```
 
 - `npm ci` は初回セットアップや依存変更時に実行する。
-- JavaScriptや依存関係を変更したら `npm run build` と `npm test` を実行する。不具合修正では、可能なら修正前に失敗する回帰テストを追加する。
-- 対象を絞る場合は `node --test test/session.test.js` のように実行できる。実装と同じ計算をなぞるだけのテストではなく、期待する挙動を検証する。
+- TypeScript・JavaScriptや依存関係を変更したら `npm run build` と `npm test` を実行する。不具合修正では、可能なら修正前に失敗する回帰テストを追加する。
+- 対象を絞る場合は `npm run build` 後に `node --test test/session.test.js` のように実行できる。テストは `dist/` の生成物を読み込む。実装と同じ計算をなぞるだけのテストではなく、期待する挙動を検証する。
 - 文書のみの変更では記載内容・パス・コマンドの整合性を確認する。無関係なテスト追加は不要。
-- 現在lint・型チェック用のnpmスクリプトはない。存在しないコマンドを検証手順として報告しない。
+- 型検査は `npm run typecheck`。`tsconfig.json` は拡張ホストと共有コード、`webview/tsconfig.json` はWebviewと共有コードを対象にする。`npm run build` にも型検査を含む。lint用のnpmスクリプトはない。
 - UI変更時はF5で拡張開発ホストを起動し、`wiki/README.md` を入口に対象機能を確認する。F5では `wiki` フォルダーがワークスペースとして開かれ、起動前タスクでビルドされる。変更後は再ビルドして開発ホストを再読み込みする。
 - F5のデバッグ設定は一時プロファイルで他のインストール済み拡張を無効にする。他拡張との併用確認や起動失敗の調査手順は `wiki/development/testing.md` を参照する。
 - 編集・同期変更時は、連続入力、外部編集との競合、保存、Undo / Redo、モード切り替えを重点確認する。表示変更時はライト・ダーク、キーボード操作を確認する。

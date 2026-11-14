@@ -1,7 +1,7 @@
 'use strict';
 const {test}=require('node:test');const assert=require('node:assert/strict');
-const {wrapSelection,formatLines}=require('../webview/formatting');
-const {renderMarkdown}=require('../src/markdown');
+const {wrapSelection,formatLines}=require('../dist/webview/formatting');
+const {renderMarkdown}=require('../dist/src/markdown');
 test('inline formats preserve selected text and render safely',()=>{
  for(const [kind,expected,tag] of [['bold','**文字**','strong'],['italic','*文字*','em'],['underline','<u>文字</u>','u'],['strike','~~文字~~','s']]){
   const result=wrapSelection(kind,'文字');assert.equal(result.text,expected);assert.equal(result.text.slice(result.offset,result.offset+result.length),'文字');

@@ -1,6 +1,6 @@
 'use strict';
 const {test}=require('node:test');const assert=require('node:assert/strict');const path=require('node:path').posix;
-const {pickImage}=require('../src/images');
+const {pickImage}=require('../dist/src/images');
 const uri=value=>({scheme:'file',authority:'',path:value});
 function setup(source){const writes=[];return {writes,api:{Uri:{joinPath:(base,...parts)=>uri(path.join(base.path,...parts))},window:{showOpenDialog:async()=>source?[uri(source)]:undefined},workspace:{fs:{readFile:async()=>new Uint8Array([1,2]),createDirectory:async()=>{},writeFile:async(target,bytes)=>writes.push({target,bytes})}}}};}
 test('local image selection encodes the relative path without copying',async()=>{

@@ -1,5 +1,7 @@
-'use strict';
-function wrapSelection(kind, selected) {
+export type InlineFormat = 'bold' | 'italic' | 'underline' | 'strike' | 'inline-code';
+export type LineFormat = 'heading' | 'quote' | 'bullet-list' | 'ordered-list';
+export type Format = InlineFormat | LineFormat | 'code' | 'table' | 'horizontal-rule' | 'link' | 'image-url' | 'image-file';
+export function wrapSelection(kind: InlineFormat, selected: string) {
   const text = selected || (kind === 'inline-code' ? 'コード' : 'テキスト');
   const markers = {bold:['**','**'],italic:['*','*'],underline:['<u>','</u>'],strike:['~~','~~']};
   if (kind === 'inline-code') {
@@ -10,10 +12,10 @@ function wrapSelection(kind, selected) {
   const [open,close]=markers[kind];
   return {text:open+text+close,offset:open.length,length:text.length};
 }
-function formatLines(kind, text, level) {
+export function formatLines(kind: LineFormat, text: string, level = 1) {
   let number=0;
   return text.split('\n').map(line=>{
-    const match=/^(\s*)(.*)$/.exec(line), indent=match[1], body=match[2];
+    const match=/^(\s*)(.*)$/.exec(line)!, indent=match[1], body=match[2];
     if (kind==='heading') return indent+'#'.repeat(level)+' '+(/^#{1,7}(?:[ \t]+|$)/.test(body) ? body.replace(/^#{1,7}(?:[ \t]+|$)/,'').replace(/[ \t]+#+[ \t]*$/,'') : body);
     if (kind==='quote') return indent+'> '+body;
     if (!body && text.includes('\n')) return line;
@@ -21,4 +23,3 @@ function formatLines(kind, text, level) {
     return indent+(kind==='bullet-list'?'- ':`${++number}. `)+(content||'項目');
   }).join('\n');
 }
-module.exports={wrapSelection,formatLines};

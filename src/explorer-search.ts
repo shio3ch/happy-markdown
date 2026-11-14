@@ -1,7 +1,10 @@
-'use strict';
-const { randomBytes } = require('node:crypto');
+import { randomBytes } from 'node:crypto';
+import type * as VSCode from 'vscode';
+import { isSearchMessage } from '../shared/messages';
+import type { SearchAction, SearchState } from '../shared/messages';
+import type { ResourceUri, SearchNode } from './types';
 
-function searchShell(webview, resource) {
+export function searchShell(webview: Pick<VSCode.Webview, 'cspSource'>, resource: ResourceUri) {
   const nonce = randomBytes(16).toString('hex');
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src 'nonce-${nonce}';">
@@ -12,22 +15,27 @@ function searchShell(webview, resource) {
 </main><script nonce="${nonce}" src="${resource('dist/explorer-search.js')}"></script></body></html>`;
 }
 
-function registerSearchView(context, vscode, handlers) {
-  let view, state = { type: 'state', busy: false, query: '', requestId: 0, status: '検索語を入力してください。', results: [] }, allowed = new Map();
-  const provider = {
+export function registerSearchView(context: VSCode.ExtensionContext, vscode: typeof VSCode, handlers: {
+  query(value: string, id: number): unknown;
+  action(type: SearchAction, node: SearchNode): unknown;
+}) {
+  let view: VSCode.WebviewView | undefined;
+  let state: SearchState = { type: 'state', busy: false, query: '', requestId: 0, status: '検索語を入力してください。', results: [] };
+  let allowed = new Map<string, SearchNode>();
+  const provider: VSCode.WebviewViewProvider = {
     resolveWebviewView(value) {
       view = value;
       value.description = '検索';
       const webview = value.webview;
       webview.options = { enableScripts: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, 'styles'), vscode.Uri.joinPath(context.extensionUri, 'dist')] };
       webview.html = searchShell(webview, path => webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, path)));
-      context.subscriptions.push(webview.onDidReceiveMessage(message => {
-        if (!message || typeof message !== 'object') return;
+      context.subscriptions.push(webview.onDidReceiveMessage((message: unknown) => {
+        if (!isSearchMessage(message)) return;
         if (message.type === 'ready') return webview.postMessage(state);
         if (message.type === 'query' && typeof message.value === 'string' && Number.isSafeInteger(message.requestId) && message.requestId > state.requestId) {
           return handlers.query(message.value, message.requestId);
         }
-        if (['open', 'source', 'bookmark'].includes(message.type) && typeof message.id === 'string') {
+        if (message.type === 'open' || message.type === 'source' || message.type === 'bookmark') {
           const node = allowed.get(message.id);
           if (node) return handlers.action(message.type, node);
         }
@@ -38,7 +46,7 @@ function registerSearchView(context, vscode, handlers) {
   };
   context.subscriptions.push(vscode.window.registerWebviewViewProvider('happyMarkdown.search', provider, { webviewOptions: { retainContextWhenHidden: true } }));
   return {
-    render(next, nodes) {
+    render(next: Omit<SearchState, 'type' | 'results'> & { bookmarks: string[]; activeUri?: string }, nodes: SearchNode[]) {
       allowed = new Map(nodes.map(node => [node.uri.toString(), node]));
       state = { type: 'state', ...next, results: nodes.map(node => ({ id: node.uri.toString(), label: node.label,
         path: node.description, count: node.matches.length, matches: node.matches.slice(0, 3),
@@ -47,5 +55,3 @@ function registerSearchView(context, vscode, handlers) {
     },
   };
 }
-
-module.exports = { registerSearchView, searchShell };

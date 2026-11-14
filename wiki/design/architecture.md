@@ -6,21 +6,24 @@
 
 | 場所 | 責務 |
 | --- | --- |
-| `src/extension.js` | VS Code文書操作、保存、Undo / Redo、Webview通信 |
-| `src/shell.js` | HTMLの枠組み、ツールバー、CSP |
-| `src/markdown.js` | Markdown描画、HTMLサニタイズ、タスク編集 |
-| `src/text-change.js` / `src/images.js` | 差分編集、画像選択・コピー |
-| `src/explorer.js` | ファイル一覧・ブックマークのTreeView、表示モードと文書追従、検索の更新制御 |
-| `src/workspace-search.js` | 画面から独立した検索条件・本文検索処理 |
-| `src/explorer-search.js` | 検索用WebviewViewの登録、CSP、メッセージ検証 |
-| `webview/explorer-search.js` | 検索欄、IME・入力イベント、検索結果の安全なDOM描画 |
-| `webview/editor.js` | CodeMirrorと構文挿入 |
-| `webview/session.js` | 入力同期、応答待ち、競合処理 |
-| `webview/workbench.js` | 編集・プレビューの切り替えと接続 |
-| `webview/preview.js` / `webview/preview-search.js` | プレビュー操作・検索 |
+| `src/extension.ts` | VS Code文書操作、保存、Undo / Redo、Webview通信 |
+| `src/shell.ts` | HTMLの枠組み、ツールバー、CSP |
+| `src/markdown.ts` | Markdown描画、HTMLサニタイズ、タスク編集 |
+| `src/text-change.ts` / `src/images.ts` | 差分編集、画像選択・コピー |
+| `src/explorer.ts` | ファイル一覧・ブックマークのTreeView、表示モードと文書追従、検索の更新制御 |
+| `src/workspace-search.ts` | 画面から独立した検索条件・本文検索処理 |
+| `src/explorer-search.ts` | 検索用WebviewViewの登録、CSP、メッセージ検証 |
+| `webview/explorer-search.ts` | 検索欄、IME・入力イベント、検索結果の安全なDOM描画 |
+| `webview/editor.ts` | CodeMirrorと構文挿入 |
+| `webview/session.ts` | 入力同期、応答待ち、競合処理 |
+| `webview/workbench.ts` | 編集・プレビューの切り替えと接続 |
+| `webview/preview.ts` / `webview/preview-search.ts` | プレビュー操作・検索 |
+| `shared/messages.ts` | ホストとWebviewが共有する通信型と実行時の検証 |
+| `src/types.ts` | エクスプローラーと検索のデータ型 |
+| `webview/dom.ts` / `webview/vscode.d.ts` | 固定HTML要素とVS Code Webview APIの型 |
 | `styles/` | 表示スタイル |
-| `test/` | Node.jsのテスト |
-| `scripts/build.cjs` | Webviewのバンドルとライセンス出力 |
+| `test/` | ビルド済みJavaScriptを検証するNode.jsの既存CommonJSテスト |
+| `scripts/build.cjs` | Webview・テスト用モジュールのバンドルとライセンス出力。Node.jsから直接実行するCommonJS |
 
 | その他の場所 | 役割 |
 | --- | --- |
@@ -29,10 +32,13 @@
 | `wiki/` | 用途別の開発資料と、デバッグ起動時の検証用ワークスペース |
 | `examples/` | Markdown表現をまとめた補助サンプル |
 | `media/` | サイドバーのアイコンなど |
-| `dist/` | ビルドで生成するWebviewバンドルとライセンス情報 |
+| `dist/` | ビルドで生成する拡張ホスト、共有コード、Webviewバンドルとライセンス情報 |
+| `tsconfig.base.json` / `tsconfig.json` / `webview/tsconfig.json` | 共通の厳格な型検査設定、拡張ホスト用、Webview用の設定 |
 | `.vscodeignore` | VSIXへの同梱対象から除外するファイル |
 
 パスはリポジトリルートを基準とします。
+
+アプリ本体はTypeScriptで記述しています。拡張ホストは `tsc` でCommonJSの `dist/src/` と `dist/shared/` に出力し、拡張のエントリーポイントは `dist/src/extension.js` です。Webviewはesbuildでブラウザー向けにバンドルします。ホストの型検査ではNode.js・VS Code API、Webviewの型検査ではDOM APIを使用し、`shared/` は環境固有のAPIに依存しません。UIは引き続きDOM操作とCodeMirrorで実装しており、Reactは未導入です。
 
 ## 2つの描画経路
 

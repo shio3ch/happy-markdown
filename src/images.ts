@@ -1,8 +1,9 @@
-'use strict';
-const {randomBytes}=require('node:crypto');
-const path=require('node:path').posix;
-const encode = value => encodeURIComponent(value).replace(/[!'()*]/g, char=>'%'+char.charCodeAt(0).toString(16).toUpperCase());
-async function pickImage(vscode,document) {
+import { randomBytes } from 'node:crypto';
+import type * as VSCode from 'vscode';
+import type { ImageResult } from '../shared/messages';
+import { posix as path } from 'node:path';
+const encode = (value: string) => encodeURIComponent(value).replace(/[!'()*]/g, char=>'%'+char.charCodeAt(0).toString(16).toUpperCase());
+export async function pickImage(vscode: typeof VSCode, document: VSCode.TextDocument): Promise<Omit<ImageResult, 'type'>> {
   if(document.isUntitled || document.uri.scheme==='untitled')return {message:'画像ファイルを追加する前に、Markdownファイルを保存してください。'};
   const files=await vscode.window.showOpenDialog({canSelectMany:false,canSelectFolders:false,openLabel:'画像を追加',filters:{画像:['png','jpg','jpeg','gif','webp','svg','bmp','ico']}});
   if(!files?.length)return {};
@@ -22,4 +23,3 @@ async function pickImage(vscode,document) {
   await vscode.workspace.fs.writeFile(target,bytes);
   return {path:'assets/'+encode(name)};
 }
-module.exports={pickImage};

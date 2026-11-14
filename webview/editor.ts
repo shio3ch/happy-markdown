@@ -8,11 +8,12 @@ import { tags } from '@lezer/highlight';
 import { searchKeymap, openSearchPanel } from '@codemirror/search';
 import { snippet, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { wrapSelection, formatLines } from './formatting';
+import type { Format } from './formatting';
 import { textChange } from '../src/text-change';
 
-export function createEditor(parent, onChange, actions) {
+export function createEditor(parent: HTMLElement, onChange: (text: string) => void, actions: { save(): void; undo(): void; redo(): void }) {
   const palette = new Compartment();
-  const highlight = dark => syntaxHighlighting(HighlightStyle.define([
+  const highlight = (dark: boolean) => syntaxHighlighting(HighlightStyle.define([
     { tag: tags.keyword, color: dark ? '#c4a4f5' : '#8250df' },
     { tag: [tags.string, tags.url], color: dark ? '#a5d6ff' : '#0a3069' },
     { tag: [tags.number, tags.bool], color: dark ? '#79c0ff' : '#0550ae' },
@@ -24,7 +25,7 @@ export function createEditor(parent, onChange, actions) {
   const dark = () => document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast');
   let remote = false;
   const view = new EditorView({ parent, state: EditorState.create({ extensions: [
-    EditorView.cspNonce.of(document.querySelector('meta[name="style-nonce"]')?.content || ''),
+    EditorView.cspNonce.of(document.querySelector<HTMLMetaElement>('meta[name="style-nonce"]')?.content || ''),
     lineNumbers(), drawSelection(), highlightActiveLine(), bracketMatching(), closeBrackets(), EditorView.lineWrapping,
     markdown({ base: markdownLanguage, codeLanguages: languages }), palette.of(highlight(dark())),
     Prec.highest(keymap.of([
@@ -39,34 +40,34 @@ export function createEditor(parent, onChange, actions) {
     EditorView.contentAttributes.of({ 'aria-label': 'Markdown本文を編集', spellcheck: 'false' }),
   ] }) });
   new MutationObserver(() => view.dispatch({ effects: palette.reconfigure(highlight(dark())) })).observe(document.body, { attributes: true, attributeFilter: ['class'] });
-  function setText(text) {
+  function setText(text: string) {
     const delta = textChange(view.state.doc.toString(), text);
     if (!delta) return;
     remote = true;
     try { view.dispatch({ changes: { from: delta.start, to: delta.end, insert: delta.text } }); }
     finally { remote = false; }
   }
-  function format(kind, value) {
-    if (['bold','italic','underline','strike','inline-code'].includes(kind)) {
+  function format(kind: Format, value?: number | string) {
+    if (kind === 'bold' || kind === 'italic' || kind === 'underline' || kind === 'strike' || kind === 'inline-code') {
       view.dispatch(view.state.changeByRange(range => {
         const formatted = wrapSelection(kind, view.state.sliceDoc(range.from, range.to));
         return { changes: { from: range.from, to: range.to, insert: formatted.text },
           range: EditorSelection.range(range.from + formatted.offset, range.from + formatted.offset + formatted.length) };
       }));
-    } else if (['heading','bullet-list','ordered-list','quote'].includes(kind)) {
-      if (kind === 'heading' && (!Number.isInteger(value) || value < 1 || value > 7)) return;
+    } else if (kind === 'heading' || kind === 'bullet-list' || kind === 'ordered-list' || kind === 'quote') {
+      if (kind === 'heading' && (typeof value !== 'number' || !Number.isInteger(value) || value < 1 || value > 7)) return;
       const range = view.state.selection.main;
       const first = view.state.doc.lineAt(range.from);
       const last = view.state.doc.lineAt(range.to > range.from && view.state.doc.lineAt(range.to).from === range.to ? range.to - 1 : range.to);
       const selected = view.state.sliceDoc(first.from,last.to);
-      const result = formatLines(kind,selected,value);
+      const result = formatLines(kind,selected,typeof value === 'number' ? value : undefined);
       view.dispatch({ changes: { from:first.from,to:last.to,insert:result },
         selection: EditorSelection.range(first.from,first.from+result.length) });
     } else {
       const range = view.state.selection.main;
       const selected = view.state.sliceDoc(range.from, range.to);
       const prefix = view.state.doc.lineAt(range.from).from < range.from ? '\n\n' : '\n';
-      const escape = text => text.replace(/[{}]/g, '\\$&');
+      const escape = (text: string) => text.replace(/[{}]/g, '\\$&');
       let template;
       if (kind === 'code') {
         const fence = '`'.repeat(Math.max(3, ...[...selected.matchAll(/`+/g)].map(match => match[0].length + 1)));
@@ -84,6 +85,7 @@ export function createEditor(parent, onChange, actions) {
       } else if (kind === 'image-file') {
         const label=selected ? selected.replace(/([\[\]\\])/g,'\\$1') : '画像の説明';
         // Local path comes from the host's file picker; braces remain literal.
+        if (typeof value !== 'string') return;
         template='!['+escape(label)+']('+escape(value)+')${0}';
       } else return;
       snippet(template)(view, null, range.from, range.to);

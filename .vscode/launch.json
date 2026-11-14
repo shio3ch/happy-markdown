@@ -14,7 +14,11 @@
         "${workspaceFolder}/wiki/README.md"
       ],
       "trace": true,
-      "preLaunchTask": "Happy Markdown: build"
+      "preLaunchTask": "Happy Markdown: build",
+      "outFiles": [
+        "${workspaceFolder}/dist/src/**/*.js",
+        "${workspaceFolder}/dist/shared/**/*.js"
+      ]
     }
   ]
 }

@@ -1,6 +1,5 @@
-'use strict';
 // One contiguous replacement keeps unrelated text and line endings intact.
-function textChange(before, after) {
+export function textChange(before: string, after: string) {
   if (before === after) return;
   let start = 0, end = before.length, nextEnd = after.length;
   while (start < end && start < nextEnd && before[start] === after[start]) start++;
@@ -10,4 +9,3 @@ function textChange(before, after) {
   if (end < before.length && /[\uDC00-\uDFFF]/.test(before[end])) { end++; nextEnd++; }
   return { start, end, text: after.slice(start, nextEnd) };
 }
-module.exports = { textChange };

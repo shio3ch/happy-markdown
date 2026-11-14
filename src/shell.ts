@@ -1,5 +1,6 @@
-'use strict';
-const { randomBytes } = require('node:crypto');
+import { randomBytes } from 'node:crypto';
+import type { Webview } from 'vscode';
+import type { ResourceUri } from './types';
 const paths = {
   save: '<path d="M5 3h12l4 4v14H3V3h2Zm2 0v6h10V3M7 21v-8h10v8"/>',
   undo: '<path d="m8 4-5 5 5 5M3 9h11a6 6 0 0 1 0 12"/>',
@@ -15,9 +16,9 @@ const paths = {
   code: '<path d="M7 3H3v18h4m10-18h4v18h-4M10 8l-4 4 4 4m4-8 4 4-4 4"/>',
   pencil: '<path d="m4 16-1 5 5-1L20 8l-4-4L4 16Zm10-10 4 4"/>',
 };
-function icon(name) { return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]}</svg>`; }
-function button(id, title, content) { return `<button id="${id}" class="tool-button" type="button" title="${title}" aria-label="${title}">${content}</button>`; }
-function shell(webview, resource) {
+function icon(name: keyof typeof paths) { return `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]}</svg>`; }
+function button(id: string, title: string, content: string) { return `<button id="${id}" class="tool-button" type="button" title="${title}" aria-label="${title}">${content}</button>`; }
+export function shell(webview: Pick<Webview, 'cspSource'>, resource: ResourceUri) {
   const nonce = randomBytes(16).toString('hex');
   return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https:; style-src ${webview.cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
@@ -53,4 +54,3 @@ function shell(webview, resource) {
   <main id="document" aria-label="Markdownプレビュー"></main><p id="message" role="status"></p>
   <script nonce="${nonce}" src="${resource('dist/workbench.js')}"></script></body></html>`;
 }
-module.exports = { shell };

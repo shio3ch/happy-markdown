@@ -2,9 +2,10 @@
 
 ## 自動検証
 
-JavaScriptや依存関係を変更したらビルドとテストを実行します。対象を絞る場合は次のように指定できます。
+TypeScript・JavaScriptや依存関係を変更したら `npm run build` と `npm test` を実行します。型検査のみなら `npm run typecheck` を使用します。`npm test` は型検査・ビルド後に、`dist/` の生成物を対象として既存のCommonJSテストを実行します。対象を絞る場合も、先にビルドしてください。
 
 ```sh
+npm run build
 node --test test/session.test.js
 ```
 
@@ -12,7 +13,7 @@ node --test test/session.test.js
 
 ## VS Code上の確認
 
-F5で拡張開発ホストを起動します。起動前のタスクでビルドが実行されます。`wiki` フォルダーをワークスペースとして開き、`wiki/README.md` を入口として資料を確認します。ソース変更後は再ビルドし、開発ホストを再読み込みしてください。
+F5で拡張開発ホストを起動します。起動前のタスクでビルドが実行されます。`wiki` フォルダーをワークスペースとして開き、`wiki/README.md` を入口として資料を確認します。ソース変更後は再ビルドし、開発ホストを再読み込みしてください。拡張ホストのソースマップと `outFiles` を設定しているため、`src/` のTypeScriptにブレークポイントを置けます。
 
 別のフォルダーで確認する場合は、`.vscode/launch.json` の `args` にある `${workspaceFolder}/wiki` を対象フォルダーの絶対パスに変更し、デバッグを停止してF5で起動し直します。`${workspaceFolder}/wiki/README.md` の引数は必要に応じて削除または変更してください。`--extensionDevelopmentPath=${workspaceFolder}` は開発中の拡張を読み込む指定なので、そのままにします。
 

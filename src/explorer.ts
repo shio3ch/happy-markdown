@@ -1,10 +1,15 @@
-'use strict';
-const { findMatches, searchDocuments } = require('./workspace-search');
-const { registerSearchView } = require('./explorer-search');
+import { searchDocuments } from './workspace-search';
+import { registerSearchView } from './explorer-search';
+export { findMatches } from './workspace-search';
+import type * as VSCode from 'vscode';
+import type { ExplorerNode, SearchNode } from './types';
+
+interface FolderNode extends ExplorerNode { children: ExplorerNode[]; folders: Map<string, FolderNode> }
+type ExplorerMode = 'files' | 'search' | 'bookmarks';
 
 // Build only the folder paths that contain Markdown files.
-function buildTree(files, folders, api) {
-  const roots = folders.map(folder => ({ label: folder.name, uri: folder.uri, children: [], folders: new Map() }));
+export function buildTree(files: readonly VSCode.Uri[], folders: readonly VSCode.WorkspaceFolder[], api: typeof VSCode): ExplorerNode[] {
+  const roots: FolderNode[] = folders.map(folder => ({ label: folder.name, uri: folder.uri, children: [], folders: new Map() }));
   for (const uri of files) {
     const folder = api.workspace.getWorkspaceFolder(uri);
     const root = roots.find(item => item.uri.toString() === folder?.uri.toString());
@@ -18,11 +23,11 @@ function buildTree(files, folders, api) {
         parent.folders.set(part, child);
         parent.children.push(child);
       }
-      parent = parent.folders.get(part);
+      parent = parent.folders.get(part)!;
     }
-    parent.children.push({ label: parts.at(-1), uri });
+    parent.children.push({ label: parts.at(-1)!, uri });
   }
-  const sort = nodes => {
+  const sort = (nodes: ExplorerNode[]): ExplorerNode[] => {
     nodes.sort((a, b) => Number(Boolean(b.children)) - Number(Boolean(a.children)) || a.label.localeCompare(b.label, undefined, { numeric: true }));
     nodes.forEach(node => { if (node.children) sort(node.children); });
     return nodes;
@@ -31,7 +36,7 @@ function buildTree(files, folders, api) {
   return roots.length === 1 ? roots[0].children : roots;
 }
 
-function findNodePath(nodes, key) {
+function findNodePath(nodes: ExplorerNode[], key: string): ExplorerNode[] | undefined {
   for (const node of nodes) {
     if (node.uri.toString() === key) return [node];
     const children = node.children && findNodePath(node.children, key);
@@ -39,21 +44,24 @@ function findNodePath(nodes, key) {
   }
 }
 
-function registerExplorer(context, vscode) {
-  const emitter = new vscode.EventEmitter();
+export function registerExplorer(context: VSCode.ExtensionContext, vscode: typeof VSCode) {
+  const emitter = new vscode.EventEmitter<ExplorerNode | undefined>();
   const bookmarkKey = 'happyMarkdown.bookmarks';
-  const stored = context.workspaceState.get(bookmarkKey, []);
+  const stored = context.workspaceState.get<unknown>(bookmarkKey, []);
   let bookmarks = new Set(Array.isArray(stored) ? stored.filter(value => typeof value === 'string') : []);
   let bookmarkWrites = Promise.resolve();
   const followKey = 'happyMarkdown.followActive';
-  let followActive = context.workspaceState.get(followKey, true) !== false;
+  let followActive = context.workspaceState.get<unknown>(followKey, true) !== false;
   let followWrites = Promise.resolve();
-  const expandedFolders = new Set();
-  const icon = name => ({
+  const expandedFolders = new Set<string>();
+  const icon = (name: string) => ({
     light: vscode.Uri.joinPath(context.extensionUri, 'media', 'explorer', 'light', `${name}.svg`),
     dark: vscode.Uri.joinPath(context.extensionUri, 'media', 'explorer', 'dark', `${name}.svg`),
   });
-  let mode = 'files', query = '', cached, timer, queryTimer, requestId = 0, searchFailed = 0, searchError = false, searchNodes = [], generation = 0, disposed = false;
+  let mode: ExplorerMode = 'files', query = '', requestId = 0, searchFailed = 0, searchError = false, generation = 0, disposed = false;
+  let cached: Promise<ExplorerNode[]> | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined, queryTimer: ReturnType<typeof setTimeout> | undefined;
+  let searchNodes: ExplorerNode[] = [];
   let activeUri = activeResource();
   let selectionVersion = 0, revealQueue = Promise.resolve();
   function activeResource() {
@@ -74,7 +82,7 @@ function registerExplorer(context, vscode) {
       const nodes = await pending;
       if (disposed || !followActive || request !== selectionVersion || version !== generation || view.visible === false) return;
       const path = findNodePath(nodes, target);
-      if (path) await view.reveal(path.at(-1), { select: true, focus: false, expand: false });
+      if (path) await view.reveal(path.at(-1)!, { select: true, focus: false, expand: false });
     }).catch(() => { /* A refresh or view disposal can invalidate a pending reveal. */ });
     return revealQueue;
   }
@@ -82,11 +90,11 @@ function registerExplorer(context, vscode) {
     const next = activeResource();
     if (activeUri === next) return;
     activeUri = next;
-    emitter.fire();
+    emitter.fire(undefined);
     if (mode === 'search') void publishSearch();
     return syncActive();
   }
-  const view = vscode.window.createTreeView('happyMarkdown.explorer', { treeDataProvider: {
+  const view = vscode.window.createTreeView<ExplorerNode>('happyMarkdown.explorer', { treeDataProvider: {
     onDidChangeTreeData: emitter.event,
     getChildren(node) {
       if (node) return node.children || [];
@@ -114,14 +122,14 @@ function registerExplorer(context, vscode) {
       return item;
     },
   } });
-  const refresh = () => { generation++; cached = undefined; emitter.fire(); void syncActive(); if (mode === 'search') void publishSearch(); };
+  const refresh = () => { generation++; cached = undefined; emitter.fire(undefined); void syncActive(); if (mode === 'search') void publishSearch(); };
   const schedule = () => { clearTimeout(timer); timer = setTimeout(refresh, 150); };
   const pattern = '**/*.{md,markdown,MD,MARKDOWN}';
-  function updateHeading(message) {
+  function updateHeading(message: string | undefined) {
     view.description = { files: 'ファイル一覧', search: '検索', bookmarks: 'ブックマーク' }[mode];
     view.message = message;
   }
-  async function load() {
+  async function load(): Promise<ExplorerNode[]> {
     const version = generation, selectedMode = mode, term = query;
     const current = () => !disposed && version === generation;
     try {
@@ -139,7 +147,7 @@ function registerExplorer(context, vscode) {
         return result.nodes;
       }
       const nodes = files.filter(uri => bookmarks.has(uri.toString())).sort((a, b) => a.path.localeCompare(b.path))
-        .map(uri => ({ label: uri.path.split('/').at(-1), uri, description: vscode.workspace.asRelativePath(uri, true) }));
+        .map(uri => ({ label: uri.path.split('/').at(-1)!, uri, description: vscode.workspace.asRelativePath(uri, true) }));
       updateHeading(nodes.length ? `${nodes.length}件のブックマーク` : 'ファイルのブックマークアイコンから登録できます。');
       return nodes;
     } catch (error) {
@@ -147,20 +155,20 @@ function registerExplorer(context, vscode) {
         cached = undefined;
         searchError = true;
         updateHeading('一覧を取得できませんでした。上部の更新から再試行してください。');
-        vscode.window.showWarningMessage(`Markdown一覧を取得できませんでした: ${error.message}`);
+        vscode.window.showWarningMessage(`Markdown一覧を取得できませんでした: ${error instanceof Error ? error.message : String(error)}`);
       }
       return [];
     }
   }
-  const selectMode = next => {
+  const selectMode = (next: ExplorerMode) => {
     mode = next;
     updateHeading(undefined);
     refresh();
     return vscode.commands.executeCommand('setContext', 'happyMarkdown.explorerMode', mode);
   };
-  function renderSearch(nodes, status, busy = false) {
+  function renderSearch(nodes: ExplorerNode[], status: string, busy = false) {
     searchNodes = nodes;
-    searchPanel.render({ query, requestId, status, busy, bookmarks: [...bookmarks], activeUri: followActive ? activeUri : undefined }, nodes);
+    searchPanel.render({ query, requestId, status, busy, bookmarks: [...bookmarks], activeUri: followActive ? activeUri : undefined }, nodes.filter((node): node is SearchNode => !!node.matches && node.description !== undefined));
   }
   async function publishSearch() {
     const version = generation;
@@ -170,7 +178,7 @@ function registerExplorer(context, vscode) {
     renderSearch(nodes, searchError ? '検索できませんでした。上部の更新から再試行してください。'
       : !query ? '検索語を入力してください。' : `${nodes.length}ファイル一致${searchFailed ? `（${searchFailed}ファイルを読み込めませんでした）` : ''}`);
   }
-  const changeBookmark = (node, add) => {
+  const changeBookmark = (node: Pick<ExplorerNode, 'uri' | 'children'> | undefined, add: boolean) => {
     if (!node?.uri || node.children) return;
     const value = node.uri.toString();
     bookmarkWrites = bookmarkWrites.then(async () => {
@@ -179,21 +187,21 @@ function registerExplorer(context, vscode) {
       await context.workspaceState.update(bookmarkKey, [...next]);
       bookmarks = next;
       if (!disposed) refresh();
-    }).catch(error => vscode.window.showWarningMessage(`ブックマークを保存できませんでした: ${error.message}`));
+    }).catch(error => { void vscode.window.showWarningMessage(`ブックマークを保存できませんでした: ${error instanceof Error ? error.message : String(error)}`); });
     return bookmarkWrites;
   };
-  const setFollowActive = enabled => {
+  const setFollowActive = (enabled: boolean) => {
     followWrites = followWrites.then(async () => {
       await context.workspaceState.update(followKey, enabled);
       followActive = enabled;
       selectionVersion++;
       await vscode.commands.executeCommand('setContext', followKey, followActive);
       if (!disposed) {
-        emitter.fire();
+        emitter.fire(undefined);
         void syncActive();
         if (mode === 'search') void publishSearch();
       }
-    }).catch(error => vscode.window.showWarningMessage(`文書への追従設定を保存できませんでした: ${error.message}`));
+    }).catch(error => { void vscode.window.showWarningMessage(`文書への追従設定を保存できませんでした: ${error instanceof Error ? error.message : String(error)}`); });
     return followWrites;
   };
   const searchPanel = registerSearchView(context, vscode, {
@@ -236,13 +244,13 @@ function registerExplorer(context, vscode) {
     vscode.commands.registerCommand('happyMarkdown.showFiles', () => selectMode('files')),
     vscode.commands.registerCommand('happyMarkdown.showSearch', () => selectMode('search')),
     vscode.commands.registerCommand('happyMarkdown.showBookmarks', () => selectMode('bookmarks')),
-    vscode.commands.registerCommand('happyMarkdown.addBookmark', node => changeBookmark(node, true)),
-    vscode.commands.registerCommand('happyMarkdown.removeBookmark', node => changeBookmark(node, false)),
+    vscode.commands.registerCommand('happyMarkdown.addBookmark', (node?: ExplorerNode) => changeBookmark(node, true)),
+    vscode.commands.registerCommand('happyMarkdown.removeBookmark', (node?: ExplorerNode) => changeBookmark(node, false)),
     vscode.commands.registerCommand('happyMarkdown.refreshExplorer', refresh),
-    vscode.commands.registerCommand('happyMarkdown.openDocument', uri => {
+    vscode.commands.registerCommand('happyMarkdown.openDocument', (uri?: VSCode.Uri) => {
       if (uri) return vscode.commands.executeCommand('vscode.openWith', uri, 'happyMarkdown.preview', { viewColumn: vscode.ViewColumn.Active, preview: true });
     }),
-    vscode.commands.registerCommand('happyMarkdown.openSource', node => {
+    vscode.commands.registerCommand('happyMarkdown.openSource', (node?: ExplorerNode) => {
       if (node?.uri) return vscode.commands.executeCommand('vscode.openWith', node.uri, 'default');
     }),
     { dispose() { disposed = true; generation++; selectionVersion++; clearTimeout(timer); clearTimeout(queryTimer); } },
@@ -251,5 +259,3 @@ function registerExplorer(context, vscode) {
   void vscode.commands.executeCommand('setContext', followKey, followActive);
   void syncActive();
 }
-
-module.exports = { buildTree, findMatches, registerExplorer };

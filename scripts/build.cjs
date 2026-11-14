@@ -1,8 +1,9 @@
 const esbuild = require('esbuild');
 const fs = require('node:fs');
 const path = require('node:path');
-const result = esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./webview/workbench.js'], outfile: 'dist/workbench.js', bundle: true, minify: true, target: 'chrome120', legalComments: 'linked', metafile: true });
-esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./webview/explorer-search.js'], outfile: 'dist/explorer-search.js', bundle: true, minify: true, target: 'chrome120' });
+const result = esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./webview/workbench.ts'], outfile: 'dist/workbench.js', bundle: true, minify: true, target: 'chrome120', legalComments: 'linked', metafile: true });
+esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./webview/explorer-search.ts'], outfile: 'dist/explorer-search.js', bundle: true, minify: true, target: 'chrome120' });
+esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['session', 'formatting', 'outline'].map(name => `webview/${name}.ts`), outdir: 'dist/webview', bundle: true, platform: 'node', format: 'cjs', target: 'node22' });
 const packages = new Set();
 for (const input of Object.keys(result.metafile.inputs)) {
   const marker = input.lastIndexOf('node_modules/');

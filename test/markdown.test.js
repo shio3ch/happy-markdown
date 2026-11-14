@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { renderMarkdown, taskEdit } = require('../src/markdown');
+const { renderMarkdown, taskEdit } = require('../dist/src/markdown');
 
 test('maps nested, quoted and ordered tasks to exact source characters', () => {
   const source = '- [ ] outer\r\n  - [X] nested\r\n> 1. [ ] quoted\r\n\r\n- regular';

@@ -1,12 +1,14 @@
-'use strict';
 
-const MarkdownIt = require('markdown-it');
-const sanitize = require('sanitize-html');
-const hljs = require('highlight.js');
+import MarkdownIt from 'markdown-it';
+import sanitize from 'sanitize-html';
+import hljs from 'highlight.js';
+import { isEditorMessage } from '../shared/messages';
+
+export interface Task { line: number; character: number; expected: string; checked: boolean }
 
 // Source positions come from parsed list items, never a global checkbox regexp.
-function renderMarkdown(source, { imageUri = value => value } = {}) {
-  const tasks = new Map();
+export function renderMarkdown(source: string, { imageUri = value => value }: { imageUri?: (value: string) => string } = {}) {
+  const tasks = new Map<string, Task>();
   const lines = source.split(/\r?\n/);
   const md = new MarkdownIt({
     html: true,
@@ -38,7 +40,7 @@ function renderMarkdown(source, { imageUri = value => value } = {}) {
     state.push('heading_close','h6',-1).markup = '#######';
     return true;
   }, {alt:['paragraph','reference','blockquote']});
-  const headings = new Map();
+  const headings = new Map<string, number>();
   md.core.ruler.after('inline', 'design_tasks', state => {
     for (let i = 0; i < state.tokens.length; i++) {
       const item = state.tokens[i];
@@ -46,9 +48,9 @@ function renderMarkdown(source, { imageUri = value => value } = {}) {
       const inline = state.tokens[i + 2];
       if (item.type !== 'list_item_open' || paragraph?.type !== 'paragraph_open' ||
           inline?.type !== 'inline' || !/^\[[ xX]\](?:\s|$)/.test(inline.content)) continue;
-      const line = item.map[0];
+      const line = item.map![0];
       const match = /^(?:[ \t]|>)*(?:[-+*]|\d+[.)])[ \t]+\[([ xX])\](?=\s|$)/.exec(lines[line]);
-      const first = inline.children[0];
+      const first = inline.children?.[0];
       if (!match || first?.type !== 'text' || !/^\[[ xX]\]/.test(first.content)) continue;
       const character = match[0].lastIndexOf('[') + 1;
       const checked = match[1].toLowerCase() === 'x';
@@ -58,11 +60,11 @@ function renderMarkdown(source, { imageUri = value => value } = {}) {
       const checkbox = new state.Token('html_inline', '', 0);
       checkbox.content = `<input type="checkbox" data-task="${id}" aria-label="${md.utils.escapeHtml(inline.content.slice(3).trim() || 'タスク')}"${checked ? ' checked' : ''}>`;
       first.content = first.content.slice(3).replace(/^\s/, '');
-      inline.children.unshift(checkbox);
+      inline.children!.unshift(checkbox);
     }
   });
   md.renderer.rules.heading_open = (tokens, index, options, env, renderer) => {
-    const text = tokens[index + 1].children.map(token => token.content).join('');
+    const text = (tokens[index + 1].children || []).map(token => token.content).join('');
     const base = text.trim().toLowerCase().replace(/[^\p{L}\p{N}\p{M}_\-\s]/gu, '').replace(/\s/g, '-');
     const count = headings.get(base) || 0;
     headings.set(base, count + 1);
@@ -71,8 +73,8 @@ function renderMarkdown(source, { imageUri = value => value } = {}) {
   };
   const originalImage = md.renderer.rules.image;
   md.renderer.rules.image = (tokens, index, ...rest) => {
-    tokens[index].attrSet('src', imageUri(tokens[index].attrGet('src')));
-    return originalImage(tokens, index, ...rest);
+    tokens[index].attrSet('src', imageUri(tokens[index].attrGet('src') || ''));
+    return originalImage!(tokens, index, ...rest);
   };
   const html = sanitize(md.render(source), {
     allowedTags: sanitize.defaults.allowedTags.concat(['img', 'input', 'details', 'summary', 'u']),
@@ -97,12 +99,10 @@ function renderMarkdown(source, { imageUri = value => value } = {}) {
   return { html, tasks };
 }
 
-function taskEdit(tasks, message, currentVersion, getLine) {
-  if (!message || message.type !== 'toggle' || message.version !== currentVersion ||
+export function taskEdit(tasks: ReadonlyMap<string, Task>, message: unknown, currentVersion: number, getLine: (line: number) => string) {
+  if (!isEditorMessage(message) || message.type !== 'toggle' || message.version !== currentVersion ||
       typeof message.checked !== 'boolean' || typeof message.id !== 'string') return;
   const task = tasks.get(message.id);
   if (!task || getLine(task.line) !== task.expected || task.checked === message.checked) return;
   return { ...task, text: message.checked ? 'x' : ' ' };
 }
-
-module.exports = { renderMarkdown, taskEdit };

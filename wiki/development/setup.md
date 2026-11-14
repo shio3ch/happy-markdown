@@ -4,11 +4,16 @@ Node.js 22以上、npm、VS Code 1.100.0以上を使用します。拡張の対�
 
 ```sh
 npm ci
+npm run typecheck
 npm run build
 npm test
 ```
 
-`npm ci` は初回セットアップや依存変更時に実行します。ビルドはesbuild、自動テストはNode.js標準のテストランナーを使用します。現在、lint・型チェックのnpmスクリプトはありません。
+`npm ci` は初回セットアップや依存変更時に実行します。アプリ本体はTypeScriptで実装しています。`npm run typecheck` は拡張ホストとWebviewをそれぞれ `strict: true` で型検査します。拡張ホストは `tsc` で `dist/src/` と `dist/shared/` に出力し、Webviewはesbuildでバンドルします。`npm run build` にも型検査が含まれます。
+
+自動テストはNode.js標準のテストランナーを使用します。`npm test` はビルド後のJavaScriptを既存のCommonJSテストで検証します。ビルド起動用の `scripts/build.cjs` もCommonJSを維持しています。lint用のnpmスクリプトはありません。VS Code APIの型定義は、対応下限と同じ1.100.0に固定しています。
+
+移行方法とビルド・型検査の分離は、[TypeScript公式のJavaScript移行ガイド](https://www.typescriptlang.org/docs/handbook/migrating-from-javascript.html)と[VS Code公式のバンドル手順](https://code.visualstudio.com/api/working-with-extensions/bundling-extension)を参照しています。
 
 ## 関連資料
 
