@@ -28,7 +28,7 @@ export class WorkbenchController {
   constructor(private readonly api: WebviewApi) {
     const restored = api.getState();
     this.restored = isRecord(restored) ? restored : undefined;
-    this.mode = this.restored?.mode === 'preview' ? 'preview' : 'edit';
+    this.mode = this.restored?.mode === 'edit' ? 'edit' : 'preview';
     this.session = new DocumentSession(this.send, this.publish);
     this.current = this.read();
   }

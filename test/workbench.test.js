@@ -9,16 +9,32 @@ const { WorkbenchController } = require('../dist/webview/workbench-controller');
 const snapshot = (text, version = 1, extra = {}) => ({ type: 'snapshot', text, version, html: renderMarkdown(text).html, dirty: false, ...extra });
 const client = (restored = { mode: 'preview' }) => webview('workbench', shell({ cspSource: 'https://webview.test' }, path => path), restored);
 
-test('new documents open directly in live editing while restored preview mode is respected', async () => {
+test('new documents open in preview without changing the document', async () => {
   const c = await webview('workbench', shell({ cspSource: 'https://webview.test' }, path => path));
   try {
     await c.receive(snapshot('# 見出し\n\n**太字**\n\n本文'));
-    await waitFor(() => c.document.body.dataset.mode === 'edit');
-    assert.equal(c.document.getElementById('editor').hidden, false);
-    assert.ok(c.document.querySelector('.cm-live-heading'));
-    assert.ok(c.document.querySelector('.cm-live-strong'));
+    await waitFor(() => c.document.querySelector('#document h1'));
+    assert.equal(c.document.body.dataset.mode, 'preview');
+    assert.equal(c.document.getElementById('editor').hidden, true);
+    assert.equal(c.document.getElementById('document').hidden, false);
+    assert.equal(c.document.querySelector('#document h1').textContent, '見出し');
+    assert.equal(c.document.querySelector('#document strong').textContent, '太字');
     assert.equal(c.sent.filter(message => message.type === 'edit').length, 0);
   } finally { await c.dispose(); }
+});
+
+test('saved editing and preview modes are restored', async () => {
+  for (const mode of ['edit', 'preview']) {
+    const c = await client({ mode });
+    try {
+      await c.receive(snapshot('# 本文'));
+      await waitFor(() => c.document.querySelector('#document h1'));
+      assert.equal(c.document.body.dataset.mode, mode);
+      assert.equal(c.document.getElementById('editor').hidden, mode !== 'edit');
+      assert.equal(c.document.getElementById('document').hidden, mode !== 'preview');
+      assert.equal(c.sent.filter(message => message.type === 'edit').length, 0);
+    } finally { await c.dispose(); }
+  }
 });
 
 test('table input retains newer cell drafts through acknowledgements, conflicts and mode changes', async () => {
