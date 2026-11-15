@@ -14,6 +14,8 @@ Reactが生成するUIではファイル名や抜粋をテキストとして描�
 
 セルの直接編集では、貼り付け・ドロップからプレーンテキストだけを受け取り、HTMLをDOMへ貼り付けません。編集したDOMも許可した装飾だけをMarkdownへ変換し、通常の文字はエスケープします。外部URLや元画像への参照はメモリ内の対応から復元し、入力DOMの任意属性をMarkdownへ引き継ぎません。変換したセル・行・列の変更も既存の文書バージョン・応答ID・競合確認を通します。
 
+Mermaid本体とDOMPurifyもWebviewへ同梱します。`strict`、HTMLラベル無効、文書からの設定上書き禁止で描画し、出力SVGをDOMPurifyでもサニタイズします。リンク・画像・foreignObject・アニメーション・URL属性を除き、CSSは描画に必要なプロパティとローカル参照だけに制限します。図のCSSはShadow DOM内に隔離し、style要素には既存CSPのnonceを付けます。CSPや許可するURIスキームは拡張しません。非同期描画は破棄済みの領域へ反映せず、一時描画用のDOMも終了時に削除します。
+
 ## 関連資料
 
 [Wikiホーム](../README.md) / [構成と描画経路](architecture.md) / [配布物の作成](../development/packaging.md)

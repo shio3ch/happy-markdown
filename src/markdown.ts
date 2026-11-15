@@ -24,6 +24,12 @@ export function renderMarkdown(source: string, { imageUri = value => value }: { 
       }
     },
   });
+  const fence = md.renderer.rules.fence!;
+  md.renderer.rules.fence = (tokens, index, options, env, renderer) => {
+    if (tokens[index].info.trim().split(/\s+/)[0].toLowerCase() === 'mermaid')
+      return `<pre><code class="language-mermaid">${md.utils.escapeHtml(tokens[index].content)}</code></pre>\n`;
+    return fence(tokens, index, options, env, renderer);
+  };
   // Markdown has six heading levels. Seven hashes are a dedicated-view extension.
   md.block.ruler.before('heading', 'design_heading7', (state, startLine, endLine, silent) => {
     if (state.sCount[startLine] - state.blkIndent >= 4) return false;

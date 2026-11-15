@@ -22,6 +22,9 @@ async function webview(name, html, restored) {
   window.Range.prototype.getClientRects = () => [];
   window.Range.prototype.getBoundingClientRect = () => ({ left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 });
   window.HTMLElement.prototype.scrollIntoView = function () {};
+  // SVGの配置・実寸は実ブラウザーで確認する。ここでは描画完了とDOM・同期を検証する。
+  window.SVGElement.prototype.getBBox = () => ({ x: 0, y: 0, width: 100, height: 30 });
+  window.SVGElement.prototype.getComputedTextLength = () => 100;
   window.acquireVsCodeApi = () => ({ getState: () => restored, setState: value => persisted.push(value), postMessage: value => sent.push(value) });
   window.eval(fs.readFileSync(require.resolve(`../dist/${name}.js`), 'utf8'));
   await waitFor(() => sent.some(message => message.type === 'ready'));

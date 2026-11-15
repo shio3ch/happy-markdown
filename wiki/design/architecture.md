@@ -24,6 +24,7 @@
 | `webview/session.ts` | 入力同期、応答待ち、競合処理 |
 | `webview/editor.ts` / `webview/formatting.ts` | CodeMirrorと構文挿入 |
 | `webview/live-preview.ts` | 構文木・表示範囲・選択行に応じたライブ装飾、タスクのチェック操作、IME中の装飾更新の抑制 |
+| `webview/mermaid-preview.ts` / `webview/mermaid-view.ts` | Mermaidフェンスのブロック装飾、非同期描画の直列化・キャンセル、SVGのサニタイズとテーマ追従 |
 | `webview/table-preview.ts` | 表のブロック装飾、本文カーソルとセル編集の接続 |
 | `webview/table-view.ts` | セルの直接入力、行・列・表の構造変更、キーボード・フォーカス・IME・ホスト操作の接続 |
 | `webview/table-controls.ts` | 行・列のホバーと操作メニュー、右上の表オプション、ドラッグ・キーボード移動、位置計測 |

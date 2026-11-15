@@ -47,6 +47,42 @@ const inputCell = (c, element, text) => {
   element.focus(); element.textContent = text;
   element.dispatchEvent(new c.window.InputEvent('input', { bubbles: true, inputType: 'insertText' }));
 };
+
+test('Mermaid block decorations preserve source, edits, selections, CRLF and composition', () => editor(c => {
+  const text = '前\r\n\r\n```mermaid\r\nflowchart LR\r\n A --> B\r\n```\r\n\r\n後';
+  c.setText(text); c.select(c.view.state.doc.length);
+  const original = c.view.state.doc.toString();
+  assert.ok(c.view.contentDOM.querySelector('.cm-live-mermaid'));
+  assert.deepEqual(c.changes, []);
+  const sourcePosition = original.indexOf('flowchart');
+  c.select(sourcePosition);
+  assert.equal(c.view.contentDOM.querySelector('.cm-live-mermaid'), null);
+  assert.match(c.view.contentDOM.textContent, /flowchart LR/);
+  c.view.dispatch({ changes: { from: original.indexOf('A -->'), to: original.indexOf('A -->') + 1, insert: '開始' } });
+  assert.equal(c.changes.at(-1), original.replace('A -->', '開始 -->'));
+  c.select(c.view.state.doc.length);
+  const widget = c.view.contentDOM.querySelector('.cm-live-mermaid');
+  assert.ok(widget);
+  c.view.contentDOM.dispatchEvent(new c.window.CompositionEvent('compositionstart', { bubbles: true }));
+  c.select(0);
+  assert.equal(c.view.contentDOM.querySelector('.cm-live-mermaid'), widget);
+  c.view.contentDOM.dispatchEvent(new c.window.CompositionEvent('compositionend', { bubbles: true }));
+  c.select(0, c.view.state.doc.length);
+  assert.equal(c.view.state.doc.toString(), original.replace('A -->', '開始 -->'));
+}));
+
+test('Mermaid leaves unclosed, nested and ordinary fences as source and reveals intersecting selections', () => editor(c => {
+  for (const text of ['```mermaid\nflowchart LR\n A --> B', '> ```mermaid\n> flowchart LR\n> ```', '```text\nflowchart LR\n A --> B\n```']) {
+    c.setText(text + '\n\n後'); c.select(c.view.state.doc.length);
+    assert.equal(c.view.contentDOM.querySelector('.cm-live-mermaid'), null);
+  }
+  const text = '前\n\n~~~mermaid\nflowchart LR\n A --> B\n~~~\n\n後';
+  c.setText(text); c.select(text.length);
+  assert.ok(c.view.contentDOM.querySelector('.cm-live-mermaid'));
+  c.select(0, text.length);
+  assert.equal(c.view.contentDOM.querySelector('.cm-live-mermaid'), null);
+  assert.equal(c.view.state.doc.toString(), text);
+}));
 const tableControl = (c, axis, boundary, remove = false) => {
   const root = c.view.contentDOM.querySelector('.cm-live-table');
   const count = root.querySelectorAll(`.cm-table-${axis}-handle`).length;

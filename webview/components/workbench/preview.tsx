@@ -3,6 +3,7 @@ import type { RefObject } from 'react';
 import type { DocumentSnapshot, EditorMessage } from '../../../shared/messages';
 import { headingTree } from '../../outline';
 import type { HeadingNode } from '../../outline';
+import { renderMermaid } from '../../mermaid-view';
 
 export type Heading = { level: number; label: string; element: HTMLElement };
 export interface PreviewInfo { complete: number; total: number; headings: HeadingNode<Heading>[] }
@@ -44,6 +45,18 @@ export function Preview({ root, snapshot, hidden, send, onInfo }: {
     boxes.find(box => box.dataset.task === focused)?.focus({ preventScroll: true });
     element.scrollTop = scroll;
   }, [snapshot, root, onInfo]);
+  useLayoutEffect(() => {
+    const element = root.current;
+    if (!element || hidden) return;
+    const cleanups = [...element.querySelectorAll<HTMLElement>('pre > code.language-mermaid')].map(code => {
+      const diagram = document.createElement('div');
+      diagram.className = 'mermaid-diagram';
+      code.parentElement!.after(diagram);
+      const cleanup = renderMermaid(diagram, code.textContent || '', rendered => { code.parentElement!.hidden = rendered; });
+      return () => { cleanup(); code.parentElement!.hidden = false; };
+    });
+    return () => cleanups.forEach(cleanup => cleanup());
+  }, [snapshot, hidden, root]);
   return <main id="document" aria-label="Markdownプレビュー" ref={root} hidden={hidden} onClick={event => {
     const link = event.target instanceof Element ? event.target.closest('a') : null;
     if (!link) return;

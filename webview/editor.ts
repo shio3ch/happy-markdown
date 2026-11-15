@@ -12,6 +12,7 @@ import type { Format } from './formatting';
 import { textChange } from '../src/text-change';
 import { livePreview } from './live-preview';
 import { tablePreview } from './table-preview';
+import { mermaidPreview } from './mermaid-preview';
 import { formatActiveTable } from './table-view';
 
 export function createEditor(parent: HTMLElement, onChange: (text: string) => void, actions: { save(): void; undo(): void; redo(): void }) {
@@ -43,7 +44,7 @@ export function createEditor(parent: HTMLElement, onChange: (text: string) => vo
         context.nextLine();
         return true;
       } }],
-    }] }), palette.of(highlight(dark())), livePreview, tablePreview(actions),
+    }] }), palette.of(highlight(dark())), livePreview, tablePreview(actions), mermaidPreview,
     EditorView.editorAttributes.of({ class: 'cm-live-editor' }),
     Prec.highest(keymap.of([
       { key: 'Mod-s', run: () => { actions.save(); return true; } },

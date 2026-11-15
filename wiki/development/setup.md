@@ -1,6 +1,6 @@
 # 開発環境
 
-Node.js 22以上、npm、VS Code 1.100.0以上を使用します。拡張の対応バージョンと実行可能なスクリプトは `package.json` を確認してください。
+Node.js 22.12.0以上、npm、VS Code 1.100.0以上を使用します。Mermaidの開発依存がNode.js 22.12.0以上を要求します。拡張の対応バージョンと実行可能なスクリプトは `package.json` を確認してください。
 
 ```sh
 npm ci

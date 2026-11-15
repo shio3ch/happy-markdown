@@ -6,7 +6,7 @@
 - 専用画面はCustom EditorとCodeMirrorを使用する。VS Code標準Markdownプレビューには共通CSSを適用する。
 - この2つの表示経路を区別し、変更がどちらに影響するかを確認する。
 - プロジェクトの目的は `README.md`、構成・現在の仕様・開発手順は [wiki/README.md](wiki/README.md)、コマンド・拡張の登録情報は `package.json` を確認する。
-- WYSIWYG、Mermaid、他拡張の描画機能の継承など、未実装の機能を対応済みとして説明しない。
+- 完全なWYSIWYG、Mermaidのビジュアル編集、他拡張の描画機能の継承など、未実装の機能を対応済みとして説明しない。Mermaidの表示は専用画面のライブ編集とプレビューが対象。
 
 ## 作業の進め方
 
@@ -48,7 +48,7 @@
 
 ## 開発と検証
 
-前提はNode.js 22以上、npm、VS Code 1.100.0以上。実際の対応範囲は `package.json` と `wiki/development/setup.md` に合わせる。
+前提はNode.js 22.12.0以上、npm、VS Code 1.100.0以上。実際の対応範囲は `package.json` と `wiki/development/setup.md` に合わせる。
 
 ```sh
 npm ci

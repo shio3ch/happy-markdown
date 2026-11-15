@@ -78,3 +78,12 @@ test('HTML code is highlighted as text, never active markup', () => {
   assert.doesNotMatch(html, /<img|<input/);
   assert.equal(tasks.size, 0);
 });
+
+test('Mermaid fences retain escaped source for the viewer, including errors and CRLF', () => {
+  const { html, tasks } = renderMarkdown('```Mermaid\r\nflowchart LR\r\n A["<img src=x onerror=alert(1)>"] --> B\r\n```\r\n\n```text\nmermaid\n```');
+  assert.match(html, /class="language-mermaid"/);
+  assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt;/);
+  assert.doesNotMatch(html, /<img|<svg|hljs-/);
+  assert.equal(tasks.size, 0);
+  assert.match(renderMarkdown('```mermaid\ninvalid\n```').html, /invalid/);
+});

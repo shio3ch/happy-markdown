@@ -126,3 +126,9 @@ body.workbench > #root { display: flex; flex-direction: column; flex: 1; min-hei
 .cm-live-table th:hover::after, .cm-live-table td:hover::after, .cm-live-table .cm-table-cell-focused::after { content: ''; position: absolute; inset: 0; border: 1px solid var(--vscode-focusBorder, var(--design-accent)); pointer-events: none; }
 .cm-table-cell { min-width: 0; min-height: calc(1em * var(--design-line-height)); white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; }
 .cm-table-cell:focus { outline: none; }
+.mermaid-diagram { overflow-x: auto; padding: 12px; border: 1px solid var(--vscode-panel-border); border-radius: 8px; min-height: 80px; }
+.mermaid-diagram[data-state="error"] { color: var(--vscode-errorForeground); }
+.cm-live-mermaid { margin: 12px 0; white-space: normal; }
+.cm-live-mermaid > button { display: block; margin: 0 0 6px auto; padding: 4px 8px; color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); border: 1px solid var(--vscode-panel-border); border-radius: 4px; cursor: pointer; }
+.cm-live-mermaid > button:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
+.mermaid-measure { position: fixed; left: -10000px; top: 0; width: 800px; visibility: hidden; pointer-events: none; font-family: sans-serif; }
