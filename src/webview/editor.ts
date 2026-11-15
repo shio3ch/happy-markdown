@@ -9,7 +9,7 @@ import { searchKeymap, openSearchPanel } from '@codemirror/search';
 import { snippet, closeBrackets, closeBracketsKeymap } from '@codemirror/autocomplete';
 import { wrapSelection, formatLines } from './formatting';
 import type { Format } from './formatting';
-import { textChange } from '../src/text-change';
+import { textChange } from '../extension/text-change';
 import { livePreview } from './live-preview';
 import { tablePreview } from './table-preview';
 import { mermaidPreview } from './mermaid-preview';

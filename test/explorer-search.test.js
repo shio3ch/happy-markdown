@@ -1,8 +1,8 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { explorerShell } = require('../dist/src/explorer-view');
-const { findMatches } = require('../dist/src/workspace-search');
+const { explorerShell } = require('../dist/extension/explorer-view');
+const { findMatches } = require('../dist/extension/workspace-search');
 const { webview } = require('./webview-helper');
 
 async function client() {

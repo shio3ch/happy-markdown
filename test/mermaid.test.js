@@ -1,8 +1,8 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { shell } = require('../dist/src/shell');
-const { renderMarkdown } = require('../dist/src/markdown');
+const { shell } = require('../dist/extension/shell');
+const { renderMarkdown } = require('../dist/extension/markdown');
 const { webview } = require('./webview-helper');
 const { JSDOM } = require('jsdom');
 const { mermaidSvg } = require('../dist/webview/mermaid-view');

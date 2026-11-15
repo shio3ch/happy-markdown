@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const { JSDOM, VirtualConsole } = require('jsdom');
 const { createEditor } = require('../dist/webview/editor');
-const { renderMarkdown } = require('../dist/src/markdown');
+const { renderMarkdown } = require('../dist/extension/markdown');
 
 async function editor(run) {
   const errors = [], changes = [], actions = [];

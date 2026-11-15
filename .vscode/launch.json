@@ -16,7 +16,7 @@
       "trace": true,
       "preLaunchTask": "Happy Markdown: build",
       "outFiles": [
-        "${workspaceFolder}/dist/src/**/*.js",
+        "${workspaceFolder}/dist/extension/**/*.js",
         "${workspaceFolder}/dist/shared/**/*.js"
       ]
     }

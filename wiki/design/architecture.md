@@ -2,35 +2,48 @@
 
 専用画面とサイドバーの各部品をReactコンポーネントに分け、文書同期・検索・VS Code APIの処理を表示から分離しています。
 
+## ソースの配置と実行環境
+
+製品のTypeScript・TSXソースは `src/` にまとめ、実行環境と役割で分けています。WebviewはVS Code内にHTML・CSS・JavaScriptで画面を表示する仕組みで、専用画面とサイドバーの製品コードを含みます。
+
+```text
+src/
+├── extension/   # 拡張ホスト：VS Code API、文書・ファイル操作
+├── webview/     # Webview画面：React、CodeMirror、components
+└── shared/      # ホストと画面が共有する通信型・検証
+```
+
+画面側の操作はメッセージで拡張ホストに依頼し、文書の変更や保存はホスト側で実行します。開発用の起動設定は `.vscode/`、テストは `test/`、ビルド用スクリプトは `scripts/`、CSSは `styles/` に置きます。
+
 ## ファイルの責務
 
 | 場所 | 責務 |
 | --- | --- |
-| `src/extension.ts` | VS Code文書操作、保存、Undo / Redo、Webview通信 |
-| `src/shell.ts` | 専用画面のReactマウント先、CSS・スクリプト参照、CSPを持つHTMLシェル |
-| `src/markdown.ts` | Markdown描画、HTMLサニタイズ、タスク編集 |
-| `src/text-change.ts` / `src/images.ts` | 差分編集、画像選択・コピー |
-| `src/explorer.ts` | ファイルツリー構築、検索・ブックマーク・文書追従・開閉状態の制御 |
-| `src/explorer-view.ts` | 統合サイドバーのWebviewView、CSP、ID照合、表示用データとローカルアイコンURIの生成 |
-| `src/workspace-search.ts` | 画面から独立した検索条件・本文検索処理 |
-| `src/types.ts` | ホスト内のエクスプローラーと検索のデータ型 |
-| `shared/messages.ts` | ホストとWebviewが共有する通信型と実行時の検証 |
-| `webview/workbench.tsx` / `webview/explorer.tsx` | React画面をマウント・アンマウントする起動用エントリー |
-| `webview/components/workbench/` | 専用画面、ツールバー、書式操作、見出し・画像メニュー、目次、本文検索、競合通知、編集・プレビューの部品 |
-| `webview/components/explorer/` | サイドバー、表示切り替え、ファイルツリー・行・操作メニュー、ブックマーク一覧、検索欄・結果・カード・抜粋の部品 |
-| `webview/components/common/` | 共通のボタン、アイコン、ドロップダウン、状態メッセージ |
-| `webview/hooks/` | 本文検索、ツールバーメニューの状態とDOM連携 |
-| `webview/workbench-controller.ts` / `webview/explorer-controller.ts` | 文書操作・検索入力・ホスト応答とReactの接続 |
-| `webview/session.ts` | 入力同期、応答待ち、競合処理 |
-| `webview/editor.ts` / `webview/formatting.ts` | CodeMirrorと構文挿入 |
-| `webview/live-preview.ts` | 構文木・表示範囲・選択行に応じたライブ装飾、タスクのチェック操作、IME中の装飾更新の抑制 |
-| `webview/mermaid-preview.ts` / `webview/mermaid-view.ts` | Mermaidフェンスのブロック装飾、非同期描画の直列化・キャンセル、SVGのサニタイズとテーマ追従 |
-| `webview/table-preview.ts` | 表のブロック装飾、本文カーソルとセル編集の接続 |
-| `webview/table-view.ts` | セルの直接入力、行・列・表の構造変更、キーボード・フォーカス・IME・ホスト操作の接続 |
-| `webview/table-controls.ts` | 行・列のホバーと操作メニュー、右上の表オプション、ドラッグ・キーボード移動、位置計測 |
-| `webview/table-cell.ts` / `webview/table-model.ts` | セルの安全な描画・Markdown変換、元文書上のセル範囲・差分の計算 |
-| `webview/outline.ts` / `webview/preview-search.ts` | 目次の階層構築と本文内の検索強調 |
-| `webview/api.ts` / `webview/vscode.d.ts` | VS Code Webview APIと復元する画面状態の型 |
+| `src/extension/extension.ts` | VS Code文書操作、保存、Undo / Redo、Webview通信 |
+| `src/extension/shell.ts` | 専用画面のReactマウント先、CSS・スクリプト参照、CSPを持つHTMLシェル |
+| `src/extension/markdown.ts` | Markdown描画、HTMLサニタイズ、タスク編集 |
+| `src/extension/text-change.ts` / `src/extension/images.ts` | 差分編集、画像選択・コピー |
+| `src/extension/explorer.ts` | ファイルツリー構築、検索・ブックマーク・文書追従・開閉状態の制御 |
+| `src/extension/explorer-view.ts` | 統合サイドバーのWebviewView、CSP、ID照合、表示用データとローカルアイコンURIの生成 |
+| `src/extension/workspace-search.ts` | 画面から独立した検索条件・本文検索処理 |
+| `src/extension/types.ts` | ホスト内のエクスプローラーと検索のデータ型 |
+| `src/shared/messages.ts` | ホストとWebviewが共有する通信型と実行時の検証 |
+| `src/webview/workbench.tsx` / `src/webview/explorer.tsx` | React画面をマウント・アンマウントする起動用エントリー |
+| `src/webview/components/workbench/` | 専用画面、ツールバー、書式操作、見出し・画像メニュー、目次、本文検索、競合通知、編集・プレビューの部品 |
+| `src/webview/components/explorer/` | サイドバー、表示切り替え、ファイルツリー・行・操作メニュー、ブックマーク一覧、検索欄・結果・カード・抜粋の部品 |
+| `src/webview/components/common/` | 共通のボタン、アイコン、ドロップダウン、状態メッセージ |
+| `src/webview/hooks/` | 本文検索、ツールバーメニューの状態とDOM連携 |
+| `src/webview/workbench-controller.ts` / `src/webview/explorer-controller.ts` | 文書操作・検索入力・ホスト応答とReactの接続 |
+| `src/webview/session.ts` | 入力同期、応答待ち、競合処理 |
+| `src/webview/editor.ts` / `src/webview/formatting.ts` | CodeMirrorと構文挿入 |
+| `src/webview/live-preview.ts` | 構文木・表示範囲・選択行に応じたライブ装飾、タスクのチェック操作、IME中の装飾更新の抑制 |
+| `src/webview/mermaid-preview.ts` / `src/webview/mermaid-view.ts` | Mermaidフェンスのブロック装飾、非同期描画の直列化・キャンセル、SVGのサニタイズとテーマ追従 |
+| `src/webview/table-preview.ts` | 表のブロック装飾、本文カーソルとセル編集の接続 |
+| `src/webview/table-view.ts` | セルの直接入力、行・列・表の構造変更、キーボード・フォーカス・IME・ホスト操作の接続 |
+| `src/webview/table-controls.ts` | 行・列のホバーと操作メニュー、右上の表オプション、ドラッグ・キーボード移動、位置計測 |
+| `src/webview/table-cell.ts` / `src/webview/table-model.ts` | セルの安全な描画・Markdown変換、元文書上のセル範囲・差分の計算 |
+| `src/webview/outline.ts` / `src/webview/preview-search.ts` | 目次の階層構築と本文内の検索強調 |
+| `src/webview/api.ts` / `src/webview/vscode.d.ts` | VS Code Webview APIと復元する画面状態の型 |
 | `styles/` | 専用画面・標準プレビューの共通CSS、専用画面とサイドバーのCSS |
 | `test/` | ホスト処理のNode.jsテスト、jsdomでReact・CodeMirrorを動かすUI回帰テスト |
 | `scripts/clean.cjs` / `scripts/build.cjs` | 生成先の削除、Webview・テスト用モジュールのバンドル、ライセンス出力 |
@@ -43,12 +56,12 @@
 | `examples/` | Markdown表現をまとめた補助サンプル |
 | `media/` | サイドバーとファイル・フォルダーのアイコン |
 | `dist/` | 生成する拡張ホスト・共有コード・Webviewバンドル・ライセンス |
-| `tsconfig.base.json` / `tsconfig.json` / `webview/tsconfig.json` | 共通の厳格な型検査、拡張ホスト、WebviewのTS・TSXの設定 |
+| `tsconfig.base.json` / `tsconfig.json` / `src/webview/tsconfig.json` | 共通の厳格な型検査、拡張ホスト、WebviewのTS・TSXの設定 |
 | `.vscodeignore` | VSIXへの同梱対象から除外するファイル |
 
 パスはリポジトリルートを基準とします。
 
-拡張ホストは `tsc` でCommonJSの `dist/src/` と `dist/shared/` に出力します。拡張のエントリーポイントは `dist/src/extension.js` です。WebviewはReact・React DOM・CodeMirrorごとesbuildでバンドルします。ホストの型検査はNode.js・VS Code API、Webviewの型検査はDOM APIを使用し、`shared/` は環境固有のAPIに依存しません。
+拡張ホストは `tsc` でCommonJSの `dist/extension/` と `dist/shared/` に出力します。拡張のエントリーポイントは `dist/extension/extension.js` です。WebviewはReact・React DOM・CodeMirrorごとesbuildでバンドルします。ホストの型検査はNode.js・VS Code API、Webviewの型検査はDOM APIを使用し、`src/shared/` は環境固有のAPIに依存しません。
 
 ## コンポーネントと状態の境界
 

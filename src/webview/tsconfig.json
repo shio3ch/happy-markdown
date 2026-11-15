@@ -1,5 +1,5 @@
 {
-  "extends": "../tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "module": "ESNext",
     "moduleResolution": "Bundler",
@@ -15,6 +15,6 @@
     "**/*.ts",
     "**/*.tsx",
     "../shared/**/*.ts",
-    "../src/text-change.ts"
+    "../extension/text-change.ts"
   ]
 }

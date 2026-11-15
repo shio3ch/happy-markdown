@@ -25,7 +25,7 @@ React UIのテストは `test/workbench.test.js`、`test/explorer-search.test.js
 
 Mermaid内部の一時DOM生成・サニタイズでは、インラインスタイルを既存CSPが遮断するため開発者ログに警告が出ます。最終SVGには許可したスタイルだけをCSSOM・nonce経由で適用します。実画面では文字の中央揃えと図の寸法も確認してください。警告を消す目的でCSPに `unsafe-inline` を追加しないでください。
 
-F5で拡張開発ホストを起動します。起動前のタスクでビルドが実行されます。`wiki` フォルダーをワークスペースとして開き、`wiki/README.md` を入口として資料を確認します。ソース変更後は再ビルドし、開発ホストを再読み込みしてください。拡張ホストのソースマップと `outFiles` を設定しているため、`src/` のTypeScriptにブレークポイントを置けます。
+F5で拡張開発ホストを起動します。起動前のタスクでビルドが実行されます。`wiki` フォルダーをワークスペースとして開き、`wiki/README.md` を入口として資料を確認します。ソース変更後は再ビルドし、開発ホストを再読み込みしてください。拡張ホストのソースマップと `outFiles` を設定しているため、`src/extension/` のTypeScriptにブレークポイントを置けます。
 
 別のフォルダーで確認する場合は、`.vscode/launch.json` の `args` にある `${workspaceFolder}/wiki` を対象フォルダーの絶対パスに変更し、デバッグを停止してF5で起動し直します。`${workspaceFolder}/wiki/README.md` の引数は必要に応じて削除または変更してください。`--extensionDevelopmentPath=${workspaceFolder}` は開発中の拡張を読み込む指定なので、そのままにします。
 

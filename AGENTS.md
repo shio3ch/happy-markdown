@@ -21,11 +21,12 @@
 
 構成と各ファイルの責務は [wiki/design/architecture.md](wiki/design/architecture.md) を参照する。
 
+- 製品のTypeScript・TSXソースは `src/` にまとめ、拡張ホストを `src/extension/`、Webview画面を `src/webview/`、共有する通信型・検証を `src/shared/` に置く。
 - アプリ本体はTypeScript、WebviewのUIはReact（TSX）で記述し、既存の命名・スタイルに合わせる。型検査はstrictを維持し、依頼なく別フレームワークへ移行しない。テストとビルド起動スクリプトは既存のCommonJS形式を使用する。
 - VS Code APIへの依存は拡張ホスト側に置き、Webviewへ直接持ち込まない。ReactはWebviewだけで使用する。CodeMirrorはEffectで生成・破棄し、モード切り替えでは再生成しない。文書同期は `DocumentSession` とコントローラーに分離し、Reactの描画タイミングに依存させない。
-- ライブ編集の文字装飾は `webview/live-preview.ts` に置き、構文木と表示範囲を使う。表は `webview/table-preview.ts` のStateFieldから直接供給し、入力UIは `table-view.ts`、行・列の操作メニューと並べ替えは `table-controls.ts`、セルの安全な描画・変換は `table-cell.ts`、文書上の差分計算は `table-model.ts` に分離する。文章の選択行では記法を表示し、表はセルを直接編集する。表示のためだけに本文を書き換えず、表の編集はCodeMirrorの変更として既存の文書同期へ渡す。コード内へのMarkdown装飾と、IME変換中のセルDOMの組み直しを避ける。
-- サイドバーのファイル一覧・検索・ブックマークは、1つのWebviewView内にReactコンポーネントとして実装する。モード切り替えやファイル操作は検証済みのメッセージでホストへ依頼し、ツリーの開閉状態・追従・キーボード操作を維持する。検索条件と本文検索処理は `src/workspace-search.ts` に分離し、入力ID・検索世代の整合性を維持する。
-- UI部品は `webview/components/common`、`webview/components/workbench`、`webview/components/explorer` に分ける。画面の起動用エントリーに部品の実装を集めず、状態やDOM連携のフックは `webview/hooks` に置く。
+- ライブ編集の文字装飾は `src/webview/live-preview.ts` に置き、構文木と表示範囲を使う。表は `src/webview/table-preview.ts` のStateFieldから直接供給し、入力UIは `table-view.ts`、行・列の操作メニューと並べ替えは `table-controls.ts`、セルの安全な描画・変換は `table-cell.ts`、文書上の差分計算は `table-model.ts` に分離する。文章の選択行では記法を表示し、表はセルを直接編集する。表示のためだけに本文を書き換えず、表の編集はCodeMirrorの変更として既存の文書同期へ渡す。コード内へのMarkdown装飾と、IME変換中のセルDOMの組み直しを避ける。
+- サイドバーのファイル一覧・検索・ブックマークは、1つのWebviewView内にReactコンポーネントとして実装する。モード切り替えやファイル操作は検証済みのメッセージでホストへ依頼し、ツリーの開閉状態・追従・キーボード操作を維持する。検索条件と本文検索処理は `src/extension/workspace-search.ts` に分離し、入力ID・検索世代の整合性を維持する。
+- UI部品は `src/webview/components/common`、`src/webview/components/workbench`、`src/webview/components/explorer` に分ける。画面の起動用エントリーに部品の実装を集めず、状態やDOM連携のフックは `src/webview/hooks` に置く。
 - `dist/` は生成物。直接編集せず `npm run build` で生成する。ビルドは `npm run clean` で以前の生成物を消してから出力し、廃止したバンドルを配布物へ残さない。
 - UIの文言は日本語を基本とし、ライト・ダークテーマ、キーボード操作、フォーカス表示を維持する。
 
@@ -61,7 +62,7 @@ npm test
 - TypeScript・JavaScriptや依存関係を変更したら `npm run build` と `npm test` を実行する。不具合修正では、可能なら修正前に失敗する回帰テストを追加する。
 - 対象を絞る場合は `npm run build` 後に `node --test test/session.test.js` のように実行できる。テストは `dist/` の生成物を読み込む。実装と同じ計算をなぞるだけのテストではなく、期待する挙動を検証する。
 - 文書のみの変更では記載内容・パス・コマンドの整合性を確認する。無関係なテスト追加は不要。
-- 型検査は `npm run typecheck`。`tsconfig.json` は拡張ホストと共有コード、`webview/tsconfig.json` はWebviewのTS・TSXと共有コードを対象にする。`npm run build` にも型検査を含む。lint用のnpmスクリプトはない。
+- 型検査は `npm run typecheck`。`tsconfig.json` は拡張ホストと共有コード、`src/webview/tsconfig.json` はWebviewのTS・TSXと共有コードを対象にする。`npm run build` にも型検査を含む。lint用のnpmスクリプトはない。
 - UI変更時はF5で拡張開発ホストを起動し、`wiki/README.md` を入口に対象機能を確認する。F5では `wiki` フォルダーがワークスペースとして開かれ、起動前タスクでビルドされる。変更後は再ビルドして開発ホストを再読み込みする。
 - F5のデバッグ設定は一時プロファイルで他のインストール済み拡張を無効にする。他拡張との併用確認や起動失敗の調査手順は `wiki/development/testing.md` を参照する。
 - 編集・同期変更時は、連続入力、外部編集との競合、保存、Undo / Redo、モード切り替えを重点確認する。表示変更時はライト・ダーク、キーボード操作を確認する。

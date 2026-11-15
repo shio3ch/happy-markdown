@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('node:assert/strict');
-const { registerExplorer } = require('../dist/src/explorer');
+const { registerExplorer } = require('../dist/extension/explorer');
 const uri = path => ({ path, fsPath: path, toString: () => `file://${path}` });
 const folder = { name: 'docs', uri: uri('/docs') };
 

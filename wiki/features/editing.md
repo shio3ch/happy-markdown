@@ -24,7 +24,7 @@ Markdownの構文木に基づいて、入力と同時に見出しの大きさ、
 
 見出し・文字装飾・リンク・引用・コード・表・チェックボックス・水平線の基本書式は、プレビューと同じ `styles/preview.css` で定義します。本文の幅と外側の余白も専用画面の両モードで共通です。見出し下の装飾線は付けず、水平線はMarkdownに明示されたものを表示します。編集時に見せる記法、元文書の空行、画像など未対応の描画による違いは残ります。
 
-この実装は[CodeMirror公式の装飾機構](https://codemirror.net/examples/decoration/)を使用し、`webview/live-preview.ts` に分離しています。
+この実装は[CodeMirror公式の装飾機構](https://codemirror.net/examples/decoration/)を使用し、`src/webview/live-preview.ts` に分離しています。
 
 ## テーブル
 
@@ -40,7 +40,7 @@ Markdownの構文木に基づいて、入力と同時に見出しの大きさ、
 - コードブロック内の表記法は表として表示しません。引用・リスト内の表にも対応します。ヘッダーより短い行は空セルを補って表示し、そのセルの編集時に必要な列を補います。余分なセルはプレビューと同様に表示対象から外しますが、文書内の値は保持します。
 - セル内の画像は説明文、任意HTMLは文字として扱います。リンクのラベルから外部URLへの移動は行いません。列配置の変更用の専用UIは未対応です。
 
-表のブロック装飾は `webview/table-preview.ts`、入力とフォーカスは `table-view.ts`、セルの描画・Markdown変換は `table-cell.ts`、文書差分は `table-model.ts` に分離しています。
+表のブロック装飾は `src/webview/table-preview.ts`、入力とフォーカスは `table-view.ts`、セルの描画・Markdown変換は `table-cell.ts`、文書差分は `table-model.ts` に分離しています。
 
 ## 関連資料
 

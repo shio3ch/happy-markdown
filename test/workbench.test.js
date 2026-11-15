@@ -1,8 +1,8 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { shell } = require('../dist/src/shell');
-const { renderMarkdown } = require('../dist/src/markdown');
+const { shell } = require('../dist/extension/shell');
+const { renderMarkdown } = require('../dist/extension/markdown');
 const { webview, waitFor } = require('./webview-helper');
 const { WorkbenchController } = require('../dist/webview/workbench-controller');
 

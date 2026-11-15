@@ -1,9 +1,9 @@
 const esbuild = require('esbuild');
 const fs = require('node:fs');
 const path = require('node:path');
-const result = esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./webview/workbench.tsx'], outfile: 'dist/workbench.js', bundle: true, minify: true, target: 'chrome120', legalComments: 'linked', metafile: true });
-const explorerResult = esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./webview/explorer.tsx'], outfile: 'dist/explorer.js', bundle: true, minify: true, target: 'chrome120', legalComments: 'linked', metafile: true });
-esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['editor', 'session', 'formatting', 'outline', 'workbench-controller', 'explorer-controller', 'mermaid-view'].map(name => `webview/${name}.ts`), outdir: 'dist/webview', bundle: true, platform: 'node', format: 'cjs', target: 'node22' });
+const result = esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./src/webview/workbench.tsx'], outfile: 'dist/workbench.js', bundle: true, minify: true, target: 'chrome120', legalComments: 'linked', metafile: true });
+const explorerResult = esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['./src/webview/explorer.tsx'], outfile: 'dist/explorer.js', bundle: true, minify: true, target: 'chrome120', legalComments: 'linked', metafile: true });
+esbuild.buildSync({ absWorkingDir: path.resolve(__dirname, '..'), entryPoints: ['editor', 'session', 'formatting', 'outline', 'workbench-controller', 'explorer-controller', 'mermaid-view'].map(name => `src/webview/${name}.ts`), outdir: 'dist/webview', bundle: true, platform: 'node', format: 'cjs', target: 'node22' });
 const packages = new Set();
 for (const input of Object.keys({ ...result.metafile.inputs, ...explorerResult.metafile.inputs })) {
   const marker = input.lastIndexOf('node_modules/');

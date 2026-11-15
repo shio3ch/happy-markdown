@@ -1,7 +1,7 @@
 'use strict';
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { explorerShell } = require('../dist/src/explorer-view');
+const { explorerShell } = require('../dist/extension/explorer-view');
 const { webview, waitFor } = require('./webview-helper');
 const entry = (id, label, extra = {}) => ({ id, label, path: `/docs/${label}`, bookmarked: false, active: false,
   icon: { light: 'https://webview.test/light/document.svg', dark: 'https://webview.test/dark/document.svg' }, ...extra });

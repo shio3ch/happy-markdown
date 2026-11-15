@@ -20,13 +20,13 @@
     "type": "git",
     "url": "https://github.com/shio3ch/happy-markdown.git"
   },
-  "main": "./dist/src/extension.js",
+  "main": "./dist/extension/extension.js",
   "scripts": {
     "test": "npm run build && node --test test/*.test.js",
     "package": "npx --yes @vscode/vsce package",
     "build": "npm run typecheck && npm run clean && tsc -p tsconfig.json && node scripts/build.cjs",
     "vscode:prepublish": "npm run build",
-    "typecheck": "tsc --noEmit -p tsconfig.json && tsc -p webview/tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc -p src/webview/tsconfig.json",
     "clean": "node scripts/clean.cjs"
   },
   "dependencies": {

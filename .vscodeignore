@@ -8,12 +8,10 @@ package-lock.json
 .vscodeignore
 *.vsix
 .cache/**
-webview/**
 scripts/**
 AGENTS.md
 wiki/**
 src/**
-shared/**
 tsconfig*.json
 dist/webview/**
 dist/**/*.map
