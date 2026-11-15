@@ -1,5 +1,5 @@
 /* Dedicated editing and reading workspace. The toolbar is outside both engines. */
-body.workbench { max-width: none; padding: 0; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+body.workbench { --document-width: 850px; --document-gutter: 24px; --document-top: 32px; --document-bottom: 80px; max-width: none; padding: 0; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
 body.workbench > #root { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 [hidden] { display: none !important; }
 .workbench-toolbar { display: flex; flex-wrap: wrap; align-items: center; flex: 0 0 auto; gap: 8px; padding: 10px 16px; border-bottom: 1px solid var(--design-border); background: var(--vscode-editor-background, #fff); font: 12px/1.5 system-ui, sans-serif; }
@@ -11,12 +11,12 @@ body.workbench > #root { display: flex; flex-direction: column; flex: 1; min-hei
 .workbench-toolbar button:focus-visible { outline: 2px solid var(--vscode-focusBorder, var(--design-accent)); outline-offset: 2px; }
 #edit-actions { display: inline-flex; gap: 5px; }
 #mode[aria-pressed="true"] { border-color: var(--design-accent); }
-.workbench #document { flex: 1; min-height: 0; overflow: auto; padding: 32px max(24px, calc((100% - 850px) / 2)) 80px; scroll-padding-top: 20px; }
+.workbench #document { flex: 1; min-height: 0; overflow: auto; padding: var(--document-top) max(var(--document-gutter), calc((100% - var(--document-width)) / 2)) var(--document-bottom); scroll-padding-top: 20px; }
 .workbench #editor { flex: 1; min-height: 0; overflow: hidden; }
 .cm-editor { height: 100%; font-family: var(--vscode-editor-font-family, monospace); font-size: var(--vscode-editor-font-size, 14px); }
 .cm-scroller { overflow: auto; }
 .cm-content { padding: 20px 0 80px; caret-color: var(--vscode-editorCursor-foreground, currentColor); }
-.cm-line { padding: 0 20px; }
+.cm-line { padding-inline: 20px; }
 .cm-gutters { background: var(--vscode-editor-background, #fff); color: var(--vscode-editorLineNumber-foreground, var(--design-muted)); border-right: 1px solid var(--design-border); }
 .cm-gutterElement { padding-top: 0; }
 .cm-activeLine { background: var(--vscode-editor-lineHighlightBackground, #88888810); }
@@ -29,10 +29,10 @@ body.workbench > #root { display: flex; flex-direction: column; flex: 1; min-hei
 #conflict { padding: 12px 20px; border-bottom: 1px solid var(--vscode-inputValidation-warningBorder, #c88a23); background: var(--vscode-inputValidation-warningBackground, var(--design-surface)); }
 #conflict button { margin: 5px; }
 .workbench #message { position: static; flex: 0 0 auto; margin: 0; border-radius: 0; font-size: 12px; }
-@media (max-width: 600px) { .workbench-toolbar { padding: 8px; gap: 5px; } #edit-actions { flex-wrap: wrap; } .workbench #document { padding: 20px 20px 48px; } }
+@media (max-width: 600px) { body.workbench { --document-gutter: 20px; --document-top: 20px; --document-bottom: 48px; } .workbench-toolbar { padding: 8px; gap: 5px; } #edit-actions { flex-wrap: wrap; } }
 /* Override CodeMirror's generated base rules without depending on load order. */
 .workbench .cm-editor .cm-content { padding: 20px 0 80px; }
-.workbench .cm-editor .cm-line { padding: 0 20px; }
+.workbench .cm-editor .cm-line { padding-inline: 20px; }
 .workbench .cm-editor .cm-scroller { font-family: var(--vscode-editor-font-family, Consolas, monospace); line-height: 1.75; }
 .workbench .cm-editor .cm-gutters { background: var(--vscode-editor-background, #fff); color: var(--vscode-editorLineNumber-foreground, var(--design-muted)); }
 .workbench .cm-editor .cm-activeLine { background: var(--vscode-editor-lineHighlightBackground, #88888810); }
@@ -50,7 +50,6 @@ body.workbench > #root { display: flex; flex-direction: column; flex: 1; min-hei
 .workbench-toolbar .tool-options button { width: 100%; justify-content: flex-start; border: 0; background: transparent; white-space: nowrap; }
 .workbench-toolbar .tool-options button:hover, .workbench-toolbar .tool-options button:focus-visible { background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground, var(--design-surface))); }
 .tool-options small { color: var(--design-muted); margin-left: auto; }
-.workbench #document h6[data-heading-level="7"] { font-size: 0.95em; color: var(--design-muted); font-weight: 600; }
 @media (max-width: 600px) { .workbench-toolbar { padding: 8px; } #mode { margin-left: auto; } .tool-options { max-width: calc(100vw - 24px); } }
 
 /* CodeMirror's generated cursor rule must not override the VS Code theme. */
@@ -85,3 +84,45 @@ body.workbench > #root { display: flex; flex-direction: column; flex: 1; min-hei
   .workbench[data-mode="preview"] .document-search { grid-row: 2; grid-column: 1 / -1; max-width: 600px; justify-self: center; }
   .workbench[data-mode="preview"] #mode { grid-column: 2; grid-row: 1; }
 }
+
+/* Live editing uses the document's typography, with source on selected lines. */
+.workbench .cm-live-editor .cm-scroller { font-family: var(--design-font-family); line-height: var(--design-line-height); }
+.workbench .cm-live-editor .cm-content { flex: 0 0 auto; width: calc(100% - 2 * var(--document-gutter)); max-width: var(--document-width); min-width: 0; margin: 0 auto; padding: var(--document-top) 0 var(--document-bottom); }
+.workbench .cm-live-editor .cm-line { padding-inline: 0; }
+.cm-live-syntax { color: var(--design-muted); font-weight: 400; }
+.cm-live-bullet { display: inline-block; min-width: 0.75em; text-align: center; }
+.cm-live-rule { display: inline-block; width: 100%; vertical-align: middle; }
+.cm-live-table { position: relative; max-width: 100%; padding: 26px 0 20px; }
+.cm-table-scroll { overflow-x: auto; }
+.cm-live-table table { margin: 0; max-width: none; overflow: hidden; }
+.cm-table-controls { position: absolute; inset: 0; pointer-events: none; font: 12px/1.5 var(--design-font-family); }
+.cm-table-controls button { width: 22px; height: 22px; padding: 0; border: 1px solid var(--design-border); border-radius: 4px; color: var(--vscode-button-secondaryForeground, inherit); background: var(--vscode-button-secondaryBackground, var(--design-surface)); cursor: pointer; font: inherit; pointer-events: auto; }
+.cm-table-controls button:disabled { opacity: 0.5; cursor: default; }
+.cm-table-controls button:focus { outline: 2px solid var(--vscode-focusBorder, var(--design-accent)); outline-offset: 2px; }
+.cm-table-gap { position: absolute; pointer-events: none; z-index: 2; }
+.cm-table-row-gap { height: 10px; transform: translateY(-50%); }
+.cm-table-column-gap { width: 10px; transform: translateX(-50%); }
+.cm-table-controls .cm-table-handle { position: absolute; opacity: 0; pointer-events: none; touch-action: none; user-select: none; }
+.cm-table-handle::before { content: ''; position: absolute; inset: -4px; }
+.cm-table-row-handle { transform: translate(-24px, -50%); cursor: grab !important; }
+.cm-table-column-handle { transform: translate(-50%, -25px); cursor: grab !important; }
+.cm-table-column-zone { position: absolute; height: 28px; pointer-events: auto; z-index: 1; }
+.cm-table-handle { z-index: 2; }
+.cm-table-options { position: absolute; z-index: 3; }
+.cm-table-controls .cm-table-control-hover, .cm-table-controls .cm-table-control-focused,
+.cm-table-controls .cm-table-handle:focus-visible, .cm-table-controls .cm-table-handle[aria-expanded="true"],
+.cm-table-controls .cm-table-drag-source { opacity: 1; pointer-events: auto; }
+.cm-table-menu { position: absolute; z-index: 5; width: 220px; max-width: calc(100vw - 24px); max-height: min(360px, calc(100vh - 110px)); overflow-y: auto; padding: 5px; border: 1px solid var(--design-border); border-radius: 7px; background: var(--vscode-menu-background, var(--vscode-editor-background, #fff)); color: var(--vscode-menu-foreground, inherit); box-shadow: 0 5px 18px #0003; pointer-events: auto; }
+.cm-table-menu-label { padding: 5px 9px; color: var(--design-muted); }
+.cm-table-menu button { display: block; width: 100%; min-height: 30px; height: auto; padding: 6px 9px; border: 0; background: transparent; text-align: left; }
+.cm-table-menu button:hover, .cm-table-menu button:focus { background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground, var(--design-surface))); }
+.cm-table-menu .cm-table-menu-delete { color: var(--vscode-errorForeground, #c33); }
+.cm-table-menu-separator { margin: 4px; border-top: 1px solid var(--design-border); }
+.cm-table-drop-target.cm-table-row-gap { border-top: 2px solid var(--vscode-focusBorder, var(--design-accent)); }
+.cm-table-drop-target.cm-table-column-gap { border-left: 2px solid var(--vscode-focusBorder, var(--design-accent)); }
+.cm-table-dragging .cm-table-handle:not(.cm-table-drag-source) { opacity: 0; pointer-events: none; }
+.cm-live-table th, .cm-live-table td { position: relative; }
+.cm-live-table tbody tr:hover { background: transparent; }
+.cm-live-table th:hover::after, .cm-live-table td:hover::after, .cm-live-table .cm-table-cell-focused::after { content: ''; position: absolute; inset: 0; border: 1px solid var(--vscode-focusBorder, var(--design-accent)); pointer-events: none; }
+.cm-table-cell { min-width: 0; min-height: calc(1em * var(--design-line-height)); white-space: pre-wrap; overflow-wrap: anywhere; cursor: text; }
+.cm-table-cell:focus { outline: none; }

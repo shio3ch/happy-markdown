@@ -11,5 +11,5 @@ export function EditorPane({ controller, hidden }: { controller: WorkbenchContro
     const detach = controller.attachEditor(editor);
     return () => { detach(); editor.destroy(); };
   }, [controller]);
-  return <div id="editor" hidden={hidden} ref={parent} aria-label="Markdownテキストエディター" />;
+  return <div id="editor" hidden={hidden} ref={parent} aria-label="Markdownライブエディター" />;
 }

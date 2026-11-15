@@ -4,12 +4,15 @@ body {
   --design-border: var(--vscode-widget-border, var(--vscode-panel-border, #d0d7de));
   --design-muted: var(--vscode-descriptionForeground, #656d76);
   --design-surface: var(--vscode-textCodeBlock-background, #f6f8fa);
+  --design-font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif;
+  --design-line-height: 1.85;
+  --design-block-gap: calc(var(--vscode-editor-font-size, 14px) * var(--design-line-height));
   color: var(--vscode-editor-foreground, #24292f);
   background: var(--vscode-editor-background, #fff);
   max-width: 900px;
   margin: 0 auto;
   padding: 40px 48px 80px;
-  line-height: 1.85;
+  line-height: var(--design-line-height);
   overflow-wrap: anywhere;
   color-scheme: light;
 }
@@ -17,37 +20,60 @@ body.vscode-dark { color-scheme: dark; }
 body.vscode-high-contrast { color-scheme: dark; }
 body.vscode-high-contrast-light { color-scheme: light; }
 body.design-preview {
-  font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif;
+  font-family: var(--design-font-family);
   font-size: var(--vscode-editor-font-size, 14px);
 }
 * { box-sizing: border-box; }
-h1, h2, h3, h4, h5, h6 {
+h1, h2, h3, h4, h5, h6, .workbench #editor .cm-live-heading {
   line-height: 1.45;
   font-weight: 650;
   letter-spacing: -0.025em;
   scroll-margin-top: 24px;
+  color: inherit;
+  border-bottom: 0;
+  padding-top: 0.65em;
+  padding-bottom: 0.35em;
 }
-h1 { font-size: 2.15em; margin: 0.65em 0 1em; padding-bottom: 0.65em; border-bottom: 1px solid var(--design-border); }
-h2 { font-size: 1.5em; margin: 2.3em 0 0.85em; padding-bottom: 0.45em; border-bottom: 1px solid var(--design-border); }
-h3 { font-size: 1.18em; margin: 1.8em 0 0.65em; }
-h4, h5, h6 { font-size: 1em; margin: 1.5em 0 0.5em; }
-p { margin: 0.9em 0 1.15em; }
-a { color: var(--design-accent); text-decoration: none; text-underline-offset: 0.2em; }
-a:hover { text-decoration: underline; }
-strong { font-weight: 650; }
-ul, ol { padding-left: 1.7em; }
-li { margin: 0.35em 0; }
+h1, h2, h3, h4, h5, h6 { margin: 0 0 var(--design-block-gap); }
+h1, .cm-live-h1 { font-size: 2.15em; }
+h2, .cm-live-h2 { font-size: 1.5em; }
+h3, .cm-live-h3 { font-size: 1.18em; }
+h4, h5, h6, .cm-live-h4, .cm-live-h5, .cm-live-h6 { font-size: 1em; }
+h6[data-heading-level="7"], .workbench #editor .cm-live-h7 { font-size: 0.95em; color: var(--design-muted); font-weight: 600; }
+p { margin: 0 0 var(--design-block-gap); }
+a, .cm-live-link { color: var(--design-accent); text-decoration: none; text-underline-offset: 0.2em; }
+a:hover, .cm-live-link:hover { text-decoration: underline; }
+strong, .cm-live-strong { font-weight: 650; }
+em, .cm-live-emphasis { font-style: italic; }
+s, .cm-live-strike, .cm-live-task-done { text-decoration: line-through; }
+u, .cm-live-underline { text-decoration: underline; text-underline-offset: 0.2em; }
+ul, ol { margin: 0 0 var(--design-block-gap); padding-left: 1.7em; }
+li { margin: 0; }
 li > p { margin: 0.5em 0; }
 li.task-list-item { list-style: none; }
-input[type="checkbox"] {
+input[type="checkbox"], .cm-live-task {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 1.1em;
   height: 1.1em;
-  margin: 0 0.65em 0 -1.65em;
-  vertical-align: -0.15em;
-  accent-color: var(--design-accent);
+  padding: 0;
+  border: 1px solid var(--design-muted);
+  border-radius: 3px;
+  color: var(--vscode-button-foreground, #fff);
+  background: transparent;
+  font: inherit;
+  line-height: 1;
+  vertical-align: -0.1em;
 }
-input[type="checkbox"]:enabled { cursor: pointer; }
-li.task-list-item:has(> input:checked) { color: var(--design-muted); }
+input[type="checkbox"] {
+  margin: 0 0.65em 0 -1.65em;
+}
+input[type="checkbox"]:enabled, .cm-live-task { cursor: pointer; }
+input[type="checkbox"]:checked, .cm-live-task[aria-checked="true"] { background: var(--vscode-button-background, var(--design-accent)); border-color: var(--design-accent); }
+input[type="checkbox"]:checked::after { content: '✓'; }
+li.task-list-item:has(> input:checked), .cm-live-task-done { color: var(--design-muted); text-decoration: line-through; }
 table {
   display: block;
   width: max-content;
@@ -59,50 +85,51 @@ table {
   border-radius: 10px;
   margin: 1.5em 0;
 }
-th, td { padding: 10px 18px; border: 0; border-bottom: 1px solid var(--design-border); text-align: left; }
+th, td { min-width: calc(4em + 36px); height: calc(1em * var(--design-line-height) + 20px); padding: 10px 18px; border: 0; border-bottom: 1px solid var(--design-border); text-align: left; }
 th { background: var(--design-surface); font-weight: 650; white-space: nowrap; }
 tr:last-child td { border-bottom: 0; }
 th[align="center"], td[align="center"] { text-align: center; }
 th[align="right"], td[align="right"] { text-align: right; }
 tbody tr:hover { background: var(--vscode-list-hoverBackground, var(--design-surface)); }
-blockquote {
-  margin: 1.5em 0;
-  padding: 14px 20px;
+blockquote, .workbench #editor .cm-live-quote {
+  padding: 0 0 0 16px;
   border-left: 3px solid var(--design-accent);
-  border-radius: 0 10px 10px 0;
   background: var(--vscode-textBlockQuote-background, var(--design-surface));
 }
+blockquote { margin: 0 0 var(--design-block-gap); }
 blockquote > :first-child { margin-top: 0; }
 blockquote > :last-child { margin-bottom: 0; }
-pre {
-  padding: 20px 24px;
-  border: 1px solid var(--design-border);
-  border-radius: 10px;
+pre, .workbench #editor .cm-live-codeblock {
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
   background: var(--design-surface);
-  overflow-x: auto;
-  line-height: 1.65;
+  font-family: var(--vscode-editor-font-family, monospace);
+  font-size: 0.92em;
+  line-height: var(--design-line-height);
 }
-code { font-family: var(--vscode-editor-font-family, monospace); font-size: 0.92em; }
-:not(pre) > code { padding: 0.18em 0.4em; border-radius: 5px; background: var(--design-surface); color: var(--vscode-textPreformat-foreground, inherit); }
-pre code { color: inherit; }
+pre { margin: 0 0 var(--design-block-gap); overflow-x: auto; }
+code, .cm-live-code { font-family: var(--vscode-editor-font-family, monospace); font-size: 0.92em; }
+:not(pre) > code, .cm-live-code { padding: 0.18em 0.4em; border-radius: 5px; background: var(--design-surface); color: var(--vscode-textPreformat-foreground, inherit); }
+pre code { color: inherit; font: inherit; }
 details { margin: 1.5em 0; padding: 14px 20px; border: 1px solid var(--design-border); border-radius: 10px; }
 summary { cursor: pointer; font-weight: 600; }
 details[open] > summary { margin-bottom: 1em; }
 img { max-width: 100%; height: auto; border-radius: 8px; }
-hr { border: 0; border-top: 1px solid var(--design-border); margin: 2.5em 0; }
-a:focus-visible, summary:focus-visible, input:focus-visible { outline: 2px solid var(--vscode-focusBorder, var(--design-accent)); outline-offset: 4px; }
+hr, .cm-live-rule { border: 0; border-top-width: 1px; border-top-style: solid; border-top-color: var(--design-border); }
+hr { margin: var(--design-block-gap) 0; }
+a:focus-visible, summary:focus-visible, input:focus-visible, .cm-live-task:focus-visible { outline: 2px solid var(--vscode-focusBorder, var(--design-accent)); outline-offset: 4px; }
 .document-toolbar { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 20px; font: 600 11px/1.5 system-ui, sans-serif; letter-spacing: 0.12em; color: var(--design-muted); }
 #progress { letter-spacing: 0.02em; }
 #message:empty { display: none; }
 #message { position: sticky; bottom: 12px; padding: 12px 16px; border: 1px solid var(--design-border); border-radius: 8px; background: var(--vscode-editor-background); }
 @media (max-width: 600px) {
   body { padding: 24px 20px 48px; }
-  h1 { font-size: 1.8em; }
-  th, td { padding: 8px 12px; }
-  pre { padding: 14px 16px; }
+  h1, .cm-live-h1 { font-size: 1.8em; }
+  th, td { min-width: calc(4em + 24px); height: calc(1em * var(--design-line-height) + 16px); padding: 8px 12px; }
 }
 @media (forced-colors: active) {
-  table, pre, details, blockquote { border: 1px solid CanvasText; }
+  table, pre, details, blockquote, .workbench #editor .cm-live-codeblock, .workbench #editor .cm-live-quote, .cm-live-task, .cm-live-rule { border: 1px solid CanvasText; }
 }
 
 /* Highlight tokens only in our preview; standard preview keeps its own theme. */

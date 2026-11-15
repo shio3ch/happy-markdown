@@ -53,6 +53,11 @@
 | --- | --- |
 | [WorkbenchController](../../webview/workbench-controller.ts) | ホストとの通信、保存・Undo / Redo・画像追加・モード切り替え前の反映待ち、画面状態とドラフトの復元 |
 | [DocumentSession](../../webview/session.ts) | 入力、反映済み本文、文書バージョン、応答待ち、競合の管理 |
+| [live-preview.ts](../../webview/live-preview.ts) | CodeMirror内の構文装飾、選択行の記法表示、タスク操作。ReactやプレビューのHTML描画から独立 |
+| [table-preview.ts](../../webview/table-preview.ts) | StateFieldによる表の表示、本文側の移動・入力とセル編集の接続 |
+| [table-view.ts](../../webview/table-view.ts) | セルの直接入力、表・行・列の変更、DOM・フォーカス・IMEの維持、保存・Undo / Redoの接続 |
+| [table-controls.ts](../../webview/table-controls.ts) | 行・列のホバーと操作メニュー、表オプション、ドラッグ・キーボード移動と配置の計測 |
+| [table-cell.ts](../../webview/table-cell.ts) / [table-model.ts](../../webview/table-model.ts) | 許可した装飾の描画・Markdown変換、セルの範囲と行・列の差分計算 |
 | [ExplorerController](../../webview/explorer-controller.ts) | サイドバーのホスト状態の購読、IME入力・検索IDの管理、表示モード・開閉・ファイル操作の依頼 |
 | [useDocumentSearch](../../webview/hooks/use-document-search.ts) | プレビュー内の検索語・一致数・現在位置と本文DOMの強調処理の接続 |
 | [useToolbarMenus](../../webview/hooks/use-toolbar-menus.ts) | ツールバーメニューの開閉、モード切り替えや外側のクリックによる閉じ操作 |

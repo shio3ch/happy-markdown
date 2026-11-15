@@ -23,6 +23,11 @@
 | `webview/workbench-controller.ts` / `webview/explorer-controller.ts` | 文書操作・検索入力・ホスト応答とReactの接続 |
 | `webview/session.ts` | 入力同期、応答待ち、競合処理 |
 | `webview/editor.ts` / `webview/formatting.ts` | CodeMirrorと構文挿入 |
+| `webview/live-preview.ts` | 構文木・表示範囲・選択行に応じたライブ装飾、タスクのチェック操作、IME中の装飾更新の抑制 |
+| `webview/table-preview.ts` | 表のブロック装飾、本文カーソルとセル編集の接続 |
+| `webview/table-view.ts` | セルの直接入力、行・列・表の構造変更、キーボード・フォーカス・IME・ホスト操作の接続 |
+| `webview/table-controls.ts` | 行・列のホバーと操作メニュー、右上の表オプション、ドラッグ・キーボード移動、位置計測 |
+| `webview/table-cell.ts` / `webview/table-model.ts` | セルの安全な描画・Markdown変換、元文書上のセル範囲・差分の計算 |
 | `webview/outline.ts` / `webview/preview-search.ts` | 目次の階層構築と本文内の検索強調 |
 | `webview/api.ts` / `webview/vscode.d.ts` | VS Code Webview APIと復元する画面状態の型 |
 | `styles/` | 専用画面・標準プレビューの共通CSS、専用画面とサイドバーのCSS |
@@ -54,6 +59,12 @@
 
 CodeMirrorは `EditorPane` のEffectで生成し、モード切り替えでは同じインスタンスを表示・非表示にします。アンマウント時にエディターとテーマ監視を破棄し、Webviewのメッセージ購読・キーボードイベントも解除します。
 
+表は改行を含む範囲を置換するため、`table-preview.ts` のStateFieldから装飾を直接供給し、表のまま編集します。本文側の矢印移動では表を1つの範囲として扱い、セル入力は `TableView` が受け持ちます。`WidgetType.updateDOM` で入力中のDOMを維持し、セルの変更・行や列の追加・削除・並べ替え・表全体の削除は `table-model.ts` の差分をCodeMirrorの変更として同期します。保存・Undo / Redoはホストへ依頼し、別の文書履歴を持ちません。
+
+行・列の操作部品は `table-controls.ts` に分離しています。ホバーした対象のハンドルだけを表示し、クリックで操作メニュー、ドラッグで並べ替えを行います。右上のオプションから表全体の削除を選びます。メニューの世代と表の内容更新を照合し、古いメニュー項目からの変更を防ぎます。横スクロールとサイズ変更に追従し、位置はCodeMirrorの[requestMeasure](https://codemirror.net/docs/ref/#view.EditorView.requestMeasure)で読取・書込フェーズを分けて計測します。ドラッグはポインターを捕捉して表内の境界を選び、完了時だけ文書を変更します。外部のドラッグデータを構造操作として解釈せず、IME中・表の内容更新・キャンセル・破棄時は移動を取り消します。
+
+セル内の装飾は同梱したmarkdown-itで解釈し、許可した要素をDOM APIで構築します。入力DOMは `table-cell.ts` でMarkdownへ変換し、パイプなどの文字をエスケープします。HTML文字列を挿入せず、文書由来のHTML属性やURLを引き継ぎません。リンク・画像の元参照はDOM属性ではなくメモリ内で保持します。
+
 Markdown本文は拡張ホストでサニタイズしたHTMLのみを、`Preview` のEffectから独立したDOM領域に反映します。検索の強調もこの領域内に限定します。本文更新時にはdetailsの開閉、スクロール位置、タスクのフォーカスを引き継ぎます。ツールバー・件数・目次・検索結果はReactが管理し、ファイル名や抜粋をHTMLとして挿入しません。
 
 参考: [React公式 — createRoot](https://react.dev/reference/react-dom/client/createRoot)、[useEffect](https://react.dev/reference/react/useEffect)、[useSyncExternalStore](https://react.dev/reference/react/useSyncExternalStore)
@@ -63,6 +74,8 @@ Markdown本文は拡張ホストでサニタイズしたHTMLのみを、`Preview
 専用画面はVS CodeのCustom Editorとして登録され、Reactの画面内でCodeMirrorによる編集とプレビューを切り替えます。標準Markdownプレビューには `markdown.previewStyles` から共通CSSのみを適用します。専用画面の機能は標準プレビューにそのまま追加されるものではありません。
 
 プレビューの描画にはmarkdown-it、構文色分けにはhighlight.js、HTMLのサニタイズにはsanitize-htmlを使用します。
+
+見出し・文字装飾・引用などの基本書式は `styles/preview.css` でHTML要素とCodeMirrorの装飾クラスにまとめて適用します。`styles/workbench.css` には専用画面の配置・編集UIを置き、基本書式を別々に定義しません。CodeMirror側のMarkdown構文色分けで見出しの色や太さを上書きしないようにします。専用画面の本文幅・外側の余白は両モードで同じCSS変数を使います。
 
 ## 統合サイドバー
 

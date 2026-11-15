@@ -19,7 +19,7 @@
 
 | 資料 | 内容 |
 | --- | --- |
-| [編集機能](features/editing.md) | CodeMirror、装飾の挿入、画像 |
+| [編集機能](features/editing.md) | Markdownライブ編集、装飾の挿入、画像 |
 | [プレビュー](features/viewer/preview.md) | 表示、本文検索、目次、チェックリスト |
 | [エクスプローラー](features/viewer/explorer.md) | ファイル一覧、全Markdownの本文検索、ブックマーク |
 | [現在の仕様と未対応の範囲](features/limitations.md) | 目標と実装済み機能の区別、互換性の制約 |

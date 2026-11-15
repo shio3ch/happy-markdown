@@ -1,5 +1,5 @@
 import { EditorState, EditorSelection, Compartment, Prec } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers, highlightActiveLine, drawSelection } from '@codemirror/view';
+import { EditorView, keymap, drawSelection } from '@codemirror/view';
 import { defaultKeymap, indentWithTab } from '@codemirror/commands';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { languages } from '@codemirror/language-data';
@@ -10,6 +10,9 @@ import { snippet, closeBrackets, closeBracketsKeymap } from '@codemirror/autocom
 import { wrapSelection, formatLines } from './formatting';
 import type { Format } from './formatting';
 import { textChange } from '../src/text-change';
+import { livePreview } from './live-preview';
+import { tablePreview } from './table-preview';
+import { formatActiveTable } from './table-view';
 
 export function createEditor(parent: HTMLElement, onChange: (text: string) => void, actions: { save(): void; undo(): void; redo(): void }) {
   const palette = new Compartment();
@@ -18,16 +21,30 @@ export function createEditor(parent: HTMLElement, onChange: (text: string) => vo
     { tag: [tags.string, tags.url], color: dark ? '#a5d6ff' : '#0a3069' },
     { tag: [tags.number, tags.bool], color: dark ? '#79c0ff' : '#0550ae' },
     { tag: tags.comment, color: dark ? '#a0adbb' : '#57606a', fontStyle: 'italic' },
-    { tag: tags.heading, color: dark ? '#8fb5ff' : '#0550ae', fontWeight: 'bold' },
-    { tag: tags.strong, fontWeight: 'bold' }, { tag: tags.emphasis, fontStyle: 'italic' },
-    { tag: tags.strikethrough, textDecoration: 'line-through' },
   ]));
   const dark = () => document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast');
   let remote = false;
   const view = new EditorView({ parent, state: EditorState.create({ extensions: [
     EditorView.cspNonce.of(document.querySelector<HTMLMetaElement>('meta[name="style-nonce"]')?.content || ''),
-    lineNumbers(), drawSelection(), highlightActiveLine(), bracketMatching(), closeBrackets(), EditorView.lineWrapping,
-    markdown({ base: markdownLanguage, codeLanguages: languages }), palette.of(highlight(dark())),
+    drawSelection(), bracketMatching(), closeBrackets(), EditorView.lineWrapping,
+    markdown({ base: markdownLanguage, codeLanguages: languages, extensions: [{
+      defineNodes: [{ name: 'ATXHeading7', block: true }],
+      parseBlock: [{ name: 'Heading7', before: 'ATXHeading', parse(context, line) {
+        const match = /^#######(?:[ \t]+|$)/.exec(line.text.slice(line.pos));
+        if (!match) return false;
+        const from = context.lineStart + line.pos;
+        const content = line.pos + match[0].length;
+        const end = line.text.search(/[ \t]+#+[ \t]*$/);
+        const contentEnd = end >= content ? end : line.text.length;
+        const children = [context.elt('HeaderMark', from, from + 7),
+          ...context.parser.parseInline(line.text.slice(content, contentEnd), context.lineStart + content)];
+        if (contentEnd < line.text.length) children.push(context.elt('HeaderMark', context.lineStart + contentEnd, context.lineStart + line.text.length));
+        context.addElement(context.elt('ATXHeading7', from, context.lineStart + line.text.length, children));
+        context.nextLine();
+        return true;
+      } }],
+    }] }), palette.of(highlight(dark())), livePreview, tablePreview(actions),
+    EditorView.editorAttributes.of({ class: 'cm-live-editor' }),
     Prec.highest(keymap.of([
       { key: 'Mod-s', run: () => { actions.save(); return true; } },
       { key: 'Mod-z', run: () => { actions.undo(); return true; } },
@@ -49,6 +66,7 @@ export function createEditor(parent: HTMLElement, onChange: (text: string) => vo
     finally { remote = false; }
   }
   function format(kind: Format, value?: number | string) {
+    if (formatActiveTable(view, kind, value)) return;
     if (kind === 'bold' || kind === 'italic' || kind === 'underline' || kind === 'strike' || kind === 'inline-code') {
       view.dispatch(view.state.changeByRange(range => {
         const formatted = wrapSelection(kind, view.state.sliceDoc(range.from, range.to));

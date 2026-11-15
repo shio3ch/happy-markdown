@@ -23,6 +23,7 @@
 
 - アプリ本体はTypeScript、WebviewのUIはReact（TSX）で記述し、既存の命名・スタイルに合わせる。型検査はstrictを維持し、依頼なく別フレームワークへ移行しない。テストとビルド起動スクリプトは既存のCommonJS形式を使用する。
 - VS Code APIへの依存は拡張ホスト側に置き、Webviewへ直接持ち込まない。ReactはWebviewだけで使用する。CodeMirrorはEffectで生成・破棄し、モード切り替えでは再生成しない。文書同期は `DocumentSession` とコントローラーに分離し、Reactの描画タイミングに依存させない。
+- ライブ編集の文字装飾は `webview/live-preview.ts` に置き、構文木と表示範囲を使う。表は `webview/table-preview.ts` のStateFieldから直接供給し、入力UIは `table-view.ts`、行・列の操作メニューと並べ替えは `table-controls.ts`、セルの安全な描画・変換は `table-cell.ts`、文書上の差分計算は `table-model.ts` に分離する。文章の選択行では記法を表示し、表はセルを直接編集する。表示のためだけに本文を書き換えず、表の編集はCodeMirrorの変更として既存の文書同期へ渡す。コード内へのMarkdown装飾と、IME変換中のセルDOMの組み直しを避ける。
 - サイドバーのファイル一覧・検索・ブックマークは、1つのWebviewView内にReactコンポーネントとして実装する。モード切り替えやファイル操作は検証済みのメッセージでホストへ依頼し、ツリーの開閉状態・追従・キーボード操作を維持する。検索条件と本文検索処理は `src/workspace-search.ts` に分離し、入力ID・検索世代の整合性を維持する。
 - UI部品は `webview/components/common`、`webview/components/workbench`、`webview/components/explorer` に分ける。画面の起動用エントリーに部品の実装を集めず、状態やDOM連携のフックは `webview/hooks` に置く。
 - `dist/` は生成物。直接編集せず `npm run build` で生成する。ビルドは `npm run clean` で以前の生成物を消してから出力し、廃止したバンドルを配布物へ残さない。

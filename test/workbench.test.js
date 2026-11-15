@@ -7,7 +7,55 @@ const { webview, waitFor } = require('./webview-helper');
 const { WorkbenchController } = require('../dist/webview/workbench-controller');
 
 const snapshot = (text, version = 1, extra = {}) => ({ type: 'snapshot', text, version, html: renderMarkdown(text).html, dirty: false, ...extra });
-const client = restored => webview('workbench', shell({ cspSource: 'https://webview.test' }, path => path), restored);
+const client = (restored = { mode: 'preview' }) => webview('workbench', shell({ cspSource: 'https://webview.test' }, path => path), restored);
+
+test('new documents open directly in live editing while restored preview mode is respected', async () => {
+  const c = await webview('workbench', shell({ cspSource: 'https://webview.test' }, path => path));
+  try {
+    await c.receive(snapshot('# 見出し\n\n**太字**\n\n本文'));
+    await waitFor(() => c.document.body.dataset.mode === 'edit');
+    assert.equal(c.document.getElementById('editor').hidden, false);
+    assert.ok(c.document.querySelector('.cm-live-heading'));
+    assert.ok(c.document.querySelector('.cm-live-strong'));
+    assert.equal(c.sent.filter(message => message.type === 'edit').length, 0);
+  } finally { await c.dispose(); }
+});
+
+test('table input retains newer cell drafts through acknowledgements, conflicts and mode changes', async () => {
+  const c = await client({ mode: 'edit' });
+  try {
+    const original = '| A | B |\n| --- | --- |\n| 元 | 維持 |\n\n末尾';
+    await c.receive(snapshot(original));
+    const cell = c.document.querySelector('td .cm-table-cell');
+    cell.focus(); cell.textContent = '入力1';
+    cell.dispatchEvent(new c.window.InputEvent('input', { bubbles: true }));
+    const first = c.sent.find(message => message.type === 'edit');
+    assert.equal(first.text, original.replace('元', '入力1'));
+    cell.textContent = '入力2'; cell.dispatchEvent(new c.window.InputEvent('input', { bubbles: true }));
+    await c.receive(snapshot(first.text, 2, { id: first.id }));
+    assert.equal(c.document.querySelector('td .cm-table-cell') === cell, true);
+    assert.equal(cell.textContent, '入力2');
+    const second = c.sent.filter(message => message.type === 'edit').at(-1);
+    assert.equal(second.text, original.replace('元', '入力2'));
+    await c.receive(snapshot(original.replace('元', '外部'), 3));
+    assert.equal(c.document.getElementById('conflict').hidden, false);
+    assert.equal(cell.textContent, '入力2');
+    assert.equal(c.persisted.at(-1).draft, second.text);
+    await c.receive(snapshot(original.replace('元', '外部'), 3, { id: second.id, rejected: true }));
+    c.document.getElementById('use-draft').click();
+    await waitFor(() => c.sent.filter(message => message.type === 'edit').length === 3);
+    const retry = c.sent.filter(message => message.type === 'edit').at(-1);
+    assert.equal(retry.text, second.text);
+    await c.receive(snapshot(retry.text, 4, { id: retry.id }));
+    c.document.getElementById('mode').click();
+    await waitFor(() => c.document.body.dataset.mode === 'preview');
+    assert.equal(c.document.querySelector('#document td').textContent, '入力2');
+    c.document.getElementById('mode').click();
+    await waitFor(() => c.document.body.dataset.mode === 'edit');
+    assert.equal(c.document.querySelector('td .cm-table-cell') === cell, true);
+    assert.equal(cell.textContent, '入力2');
+  } finally { await c.dispose(); }
+});
 
 test('React workbench retains one CodeMirror instance through editing, acknowledgements and mode changes', async () => {
   const c = await client();
@@ -33,6 +81,36 @@ test('React workbench retains one CodeMirror instance through editing, acknowled
     await waitFor(() => c.document.body.dataset.mode === 'edit');
     assert.equal(c.document.querySelector('.cm-editor'), editor);
     assert.match(editor.textContent, /テキスト/);
+  } finally { await c.dispose(); }
+});
+
+test('table structure changes keep newer drafts during acknowledgements and deletion can be undone by the host', async () => {
+  const c = await client({ mode: 'edit' });
+  try {
+    const original = '| A | B |\n| --- | ---: |\n| 一 | 二 |\n| 三 | 四 |\n\n後';
+    await c.receive(snapshot(original));
+    c.document.querySelector('.cm-table-row-handle[data-index="1"]').click();
+    c.document.querySelector('.cm-table-menu [data-command="delete"]').click();
+    const first = c.sent.find(message => message.type === 'edit');
+    assert.equal(first.text, '| A | B |\n| --- | ---: |\n| 三 | 四 |\n\n後');
+    const handle = c.document.querySelector('.cm-table-column-handle[data-index="0"]');
+    handle.focus(); handle.dispatchEvent(new c.window.KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true, cancelable: true }));
+    await c.receive(snapshot(first.text, 2, { id: first.id }));
+    assert.deepEqual([...c.document.querySelectorAll('.cm-live-table th')].map(td => td.textContent), ['B', 'A']);
+    const second = c.sent.filter(message => message.type === 'edit').at(-1);
+    assert.equal(second.text, '| B | A |\n| ---: | --- |\n| 四 | 三 |\n\n後');
+    await c.receive(snapshot(second.text, 3, { id: second.id }));
+    c.document.querySelector('.cm-table-options').click();
+    c.document.querySelector('[aria-label="テーブルを削除"]').click();
+    const deletion = c.sent.filter(message => message.type === 'edit').at(-1);
+    assert.equal(deletion.text, '\n後');
+    await c.receive(snapshot(deletion.text, 4, { id: deletion.id }));
+    assert.equal(c.document.querySelector('.cm-live-table'), null);
+    c.document.getElementById('undo').click();
+    await waitFor(() => c.sent.at(-1).type === 'undo');
+    await c.receive(snapshot(second.text, 5));
+    assert.deepEqual([...c.document.querySelectorAll('.cm-live-table th')].map(td => td.textContent), ['B', 'A']);
+    assert.deepEqual([...c.document.querySelectorAll('.cm-live-table td')].map(td => td.textContent), ['四', '三']);
   } finally { await c.dispose(); }
 });
 
