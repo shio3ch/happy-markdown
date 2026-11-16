@@ -18,6 +18,9 @@ async function webview(name, html, restored) {
   console.on('error', (...values) => errors.push(values));
   const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://webview.test/', virtualConsole: console });
   const { window } = dom;
+  // jsdomにはモーダルの描画・フォーカストラップがない。実画面で別途確認する。
+  window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  window.HTMLDialogElement.prototype.close = function () { this.open = false; };
   // jsdomには描画エンジンがないため、CodeMirrorが計測するAPIのみを補う。
   window.Range.prototype.getClientRects = () => [];
   window.Range.prototype.getBoundingClientRect = () => ({ left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 });

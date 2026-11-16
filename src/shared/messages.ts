@@ -1,6 +1,8 @@
+import { isAppearanceRequest } from './appearance';
+import type { AppearanceRequest } from './appearance';
 // このモジュールは拡張ホストとWebviewの両方から参照するため、環境固有のAPIを持たない。
 export type DocumentAction = 'save' | 'undo' | 'redo';
-export type EditorMessage =
+export type EditorMessage = AppearanceRequest
   | { type: 'ready' | 'pickImage' | DocumentAction }
   | { type: 'edit'; id: number; version: number; text: string }
   | { type: 'toggle'; id: string; version: number; checked: boolean }
@@ -59,6 +61,7 @@ function isVersion(value: unknown): value is number {
 
 export function isEditorMessage(value: unknown): value is EditorMessage {
   if (!isRecord(value)) return false;
+  if (isAppearanceRequest(value)) return true;
   switch (value.type) {
     case 'ready': case 'pickImage': case 'save': case 'undo': case 'redo': return true;
     case 'edit': return isVersion(value.id) && isVersion(value.version) && typeof value.text === 'string';

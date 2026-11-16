@@ -78,7 +78,7 @@ export function renderMermaid(target: HTMLElement, source: string, onRendered?: 
         if (source.length > 50000) throw new Error('図の定義は50,000文字以内にしてください。');
         const { default: mermaid } = await import('mermaid');
         if (disposed || current !== generation) return;
-        const dark = document.body.matches('.vscode-dark, .vscode-high-contrast');
+        const dark = document.body.dataset.readingScheme === 'dark' || (document.body.dataset.readingScheme !== 'light' && document.body.matches('.vscode-dark, .vscode-high-contrast'));
         mermaid.initialize({
           startOnLoad: false, securityLevel: 'strict', suppressErrorRendering: true,
           theme: dark ? 'dark' : 'default', layout: 'dagre', htmlLabels: false,
@@ -112,7 +112,7 @@ export function renderMermaid(target: HTMLElement, source: string, onRendered?: 
     });
   };
   const observer = new MutationObserver(render);
-  observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-reading-scheme'] });
   render();
   return () => { disposed = true; generation++; observer.disconnect(); target.remove(); };
 }

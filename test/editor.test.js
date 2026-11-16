@@ -48,6 +48,21 @@ const inputCell = (c, element, text) => {
   element.dispatchEvent(new c.window.InputEvent('input', { bubbles: true, inputType: 'insertText' }));
 };
 
+test('list hierarchy decorations keep source indentation, ordered starts and cursor positions intact', () => editor(c => {
+  const text = '- 親\n  - 子\n\n    7. 孫\n\n末尾';
+  c.setText(text); c.select(text.length);
+  assert.ok(c.document.querySelector('.cm-live-list-depth-1'));
+  assert.ok(c.document.querySelector('.cm-live-list-depth-2'));
+  assert.ok(c.document.querySelector('.cm-live-list-depth-3'));
+  assert.equal(c.document.querySelector('.cm-live-list-depth-3 .cm-live-list-marker').textContent, '7.');
+  const cursor = text.indexOf('子'); c.select(cursor);
+  assert.equal(c.document.querySelector('.cm-live-list-depth-2'), null);
+  assert.match(c.view.contentDOM.textContent, /  - 子/);
+  assert.equal(c.view.state.selection.main.head, cursor);
+  assert.equal(c.view.state.doc.toString(), text);
+  assert.deepEqual(c.changes, []);
+}));
+
 test('Mermaid block decorations preserve source, edits, selections, CRLF and composition', () => editor(c => {
   const text = '前\r\n\r\n```mermaid\r\nflowchart LR\r\n A --> B\r\n```\r\n\r\n後';
   c.setText(text); c.select(c.view.state.doc.length);

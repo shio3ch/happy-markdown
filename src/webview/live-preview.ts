@@ -134,7 +134,15 @@ function decorations(view: EditorView): DecorationSet {
       return false;
     } else if (name === 'ListMark') {
       const task = node.nextSibling?.name === 'Task';
+      const line = state.doc.lineAt(from);
+      if (!active && /^[ \t]*$/.test(state.sliceDoc(line.from, from))) {
+        let depth = 0;
+        for (let parent = node.parent; parent; parent = parent.parent) if (parent.name === 'ListItem') depth++;
+        lines(line.from, line.from, `cm-live-list-item cm-live-list-depth-${Math.min(depth, 8)}`);
+        hide(line.from, from);
+      }
       if (!active && node.parent?.parent?.name === 'BulletList') hide(from, to, task ? undefined : new BulletWidget());
+      else mark(from, to, active ? 'cm-live-syntax' : 'cm-live-list-marker');
     } else if (name === 'TaskMarker') {
       if (!active) hide(from, to, new TaskWidget(state.sliceDoc(from + 1, from + 2).toLowerCase() === 'x'));
       if (state.sliceDoc(from + 1, from + 2).toLowerCase() === 'x') mark(to, node.parent!.to, 'cm-live-task-done');

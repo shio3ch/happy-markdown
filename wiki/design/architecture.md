@@ -30,6 +30,7 @@ src/
 | `src/extension/workspace-search.ts` | 画面から独立した検索条件・本文検索処理 |
 | `src/extension/types.ts` | ホスト内のエクスプローラーと検索のデータ型 |
 | `src/shared/messages.ts` | ホストとWebviewが共有する通信型と実行時の検証 |
+| `src/shared/appearance.ts` / `src/extension/appearance.ts` | 外観スキーマ・プリセット・入力検証、設定の永続化・JSON入出力・背景画像の解決 |
 | `src/webview/workbench.tsx` / `src/webview/explorer.tsx` | React画面をマウント・アンマウントする起動用エントリー |
 | `src/webview/components/workbench/` | 専用画面、ツールバー、書式操作、見出し・画像メニュー、目次、本文検索、競合通知、編集・プレビューの部品 |
 | `src/webview/components/explorer/` | サイドバー、表示切り替え、ファイルツリー・行・操作メニュー、ブックマーク一覧、検索欄・結果・カード・抜粋の部品 |
@@ -92,6 +93,8 @@ Markdown本文は拡張ホストでサニタイズしたHTMLのみを、`Preview
 プレビューの描画にはmarkdown-it、構文色分けにはhighlight.js、HTMLのサニタイズにはsanitize-htmlを使用します。
 
 見出し・文字装飾・引用などの基本書式は `styles/preview.css` でHTML要素とCodeMirrorの装飾クラスにまとめて適用します。`styles/workbench.css` には専用画面の配置・編集UIを置き、基本書式を別々に定義しません。CodeMirror側のMarkdown構文色分けで見出しの色や太さを上書きしないようにします。専用画面の本文幅・外側の余白は両モードで同じCSS変数を使います。
+
+外観設定の画面は `AppearanceSettings`、試着と保存済みの外観の管理は `use-appearance.ts` に分けます。`styles/appearance.css` は設定UIと専用文書・サンプルのテーマ指定です。フックが検証済みの設定からnonce付きstyle要素を生成し、CSS変数を設定します。CodeMirrorの構文色分けとMermaidは外観の明るさにも追従します。保存はホスト側の `AppearanceService` が行い、同一ウィンドウの専用画面へ通知します。
 
 ## 統合サイドバー
 

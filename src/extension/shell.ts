@@ -7,6 +7,7 @@ export function shell(webview: Pick<Webview, 'cspSource'>, resource: ResourceUri
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https:; style-src ${webview.cspSource} 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
   <meta name="style-nonce" content="${nonce}">
   <link rel="stylesheet" href="${resource('styles/preview.css')}"><link rel="stylesheet" href="${resource('styles/workbench.css')}">
+  <link rel="stylesheet" href="${resource('styles/appearance.css')}">
   </head><body class="design-preview workbench">
   <div id="root"></div>
   <script nonce="${nonce}" src="${resource('dist/workbench.js')}"></script></body></html>`;

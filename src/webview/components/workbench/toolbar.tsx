@@ -8,14 +8,16 @@ import { FormattingToolbar } from './formatting-toolbar';
 import { PreviewInfo } from './preview-info';
 import { ModeSwitch } from './mode-switch';
 
-export function Toolbar({ controller, state, info, root, search }: {
+export function Toolbar({ controller, state, info, root, search, onAppearance }: {
   controller: WorkbenchController; state: ReturnType<WorkbenchController['getSnapshot']>; info: Info;
   root: RefObject<HTMLElement | null>; search: ReactNode;
+  onAppearance(): void;
 }) {
   const menus = useToolbarMenus(state.mode);
   return <header className="workbench-toolbar" aria-label="Markdownツールバー">
     <div id="toolbar-start">
       <ToolButton id="save" title="保存（Ctrl+S）" disabled={!state.ready} onClick={() => { void controller.action('save'); }}><Icon name="save" /></ToolButton>
+      <ToolButton id="appearance" title="外観をカスタマイズ" disabled={!state.ready} onClick={onAppearance}><Icon name="settings" /></ToolButton>
       <FormattingToolbar ready={state.ready} hidden={state.mode !== 'edit'} imageBusy={state.imageBusy} menus={menus}
         onAction={controller.action} onFormat={controller.format} onPickImage={controller.pickImage} />
       <PreviewInfo info={info} root={root} ready={state.ready} hidden={state.mode !== 'preview'} menus={menus} />

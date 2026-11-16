@@ -30,6 +30,7 @@
 | `ConflictNotice` | [conflict-notice.tsx](../../src/webview/components/workbench/conflict-notice.tsx) | 競合通知、最新文書と保持した入力の選択 |
 | `EditorPane` | [editor-pane.tsx](../../src/webview/components/workbench/editor-pane.tsx) | CodeMirrorの生成・接続・破棄と、編集領域の表示切り替え |
 | `Preview` | [preview.tsx](../../src/webview/components/workbench/preview.tsx) | サニタイズ済み本文の反映、タスク・リンク操作、見出しと完了数の収集 |
+| `AppearanceSettings` | [appearance-settings.tsx](../../src/webview/components/workbench/appearance-settings.tsx) | 外観設定モーダル、プリセット・配色・背景画像・JSON操作と表示サンプル |
 
 ## サイドバー
 
@@ -64,6 +65,7 @@
 | [ExplorerController](../../src/webview/explorer-controller.ts) | サイドバーのホスト状態の購読、IME入力・検索IDの管理、表示モード・開閉・ファイル操作の依頼 |
 | [useDocumentSearch](../../src/webview/hooks/use-document-search.ts) | プレビュー内の検索語・一致数・現在位置と本文DOMの強調処理の接続 |
 | [useToolbarMenus](../../src/webview/hooks/use-toolbar-menus.ts) | ツールバーメニューの開閉、モード切り替えや外側のクリックによる閉じ操作 |
+| [useAppearance](../../src/webview/hooks/use-appearance.ts) | 保存済み外観と試着の分離、外観通信、nonce付きテーマ変数の反映とキャンセル時の復元 |
 | [src/extension/explorer.ts](../../src/extension/explorer.ts) | ファイル取得、検索、ブックマークの永続化、文書追従、フォルダーの開閉状態 |
 | [src/extension/explorer-keybindings.ts](../../src/extension/explorer-keybindings.ts) | VS Codeのキーバインド用コンテキストを提供 |
 | [src/extension/explorer-files.ts](../../src/extension/explorer-files.ts) | 空フォルダーの取得、ファイル操作とクリップボード、競合・パスの検証 |

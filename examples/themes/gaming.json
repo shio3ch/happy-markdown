@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "name": "ゲーミング",
+  "fontSize": 15,
+  "lineHeight": 1.75,
+  "contentWidth": 960,
+  "paragraphGap": 1.25,
+  "listIndent": 2.2,
+  "listSpacing": 0.3,
+  "markerSize": 1.15,
+  "guides": true,
+  "fontFamily": "sans",
+  "headingStyle": "glow",
+  "colorScheme": "dark",
+  "foreground": "#e6e9ff",
+  "background": "#101322",
+  "accent": "#55f5cb",
+  "backgroundImage": "",
+  "backgroundOpacity": 0.12
+}

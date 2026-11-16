@@ -7,8 +7,10 @@ import { renderMarkdown, taskEdit } from './markdown';
 import { textChange } from './text-change';
 import { pickImage } from './images';
 import { shell } from './shell';
+import { AppearanceService } from './appearance';
 
 export function activate(context: vscode.ExtensionContext) {
+  const appearance = new AppearanceService(context, vscode);
   registerExplorer(context, vscode);
   const viewType = 'happyMarkdown.preview';
   context.subscriptions.push(vscode.commands.registerCommand('happyMarkdown.openPreview', async (uri?: vscode.Uri) => {
@@ -18,7 +20,7 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(vscode.window.registerCustomEditorProvider(viewType, {
     resolveCustomTextEditor(document, panel) {
       const webview = panel.webview;
-      webview.options = { enableScripts: true, localResourceRoots: [context.extensionUri, vscode.Uri.joinPath(document.uri, '..')] };
+      webview.options = { enableScripts: true, localResourceRoots: [context.extensionUri, vscode.Uri.joinPath(document.uri, '..'), context.globalStorageUri] };
       webview.html = shell(webview, path => webview.asWebviewUri(vscode.Uri.joinPath(context.extensionUri, path)));
       let tasks = new Map<string, Task>(), disposed = false, applying = false;
       let operations = Promise.resolve();
@@ -46,6 +48,7 @@ export function activate(context: vscode.ExtensionContext) {
       };
       const handle = async (message: unknown) => {
         if (disposed || !isEditorMessage(message)) return;
+        if (message.type === 'appearance') return appearance.handle(message, webview);
         if (message.type === 'ready') return update();
         if (message.type === 'edit') {
           if (typeof message.text !== 'string' || !Number.isSafeInteger(message.id)) return;
@@ -94,6 +97,7 @@ export function activate(context: vscode.ExtensionContext) {
         }
       };
       const subscriptions = [
+        appearance.subscribe(async () => { if (!disposed) await appearance.handle({ type: 'appearance', action: 'load' }, webview); }),
         vscode.workspace.onDidChangeTextDocument(event => {
           if (!applying && event.document.uri.toString() === document.uri.toString()) update();
         }),

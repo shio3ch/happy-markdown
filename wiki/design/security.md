@@ -16,6 +16,8 @@ Reactが生成するUIではファイル名や抜粋をテキストとして描�
 
 Mermaid本体とDOMPurifyもWebviewへ同梱します。`strict`、HTMLラベル無効、文書からの設定上書き禁止で描画し、出力SVGをDOMPurifyでもサニタイズします。リンク・画像・foreignObject・アニメーション・URL属性を除き、CSSは描画に必要なプロパティとローカル参照だけに制限します。図のCSSはShadow DOM内に隔離し、style要素には既存CSPのnonceを付けます。CSPや許可するURIスキームは拡張しません。非同期描画は破棄済みの領域へ反映せず、一時描画用のDOMも終了時に削除します。
 
+外観設定は `src/shared/appearance.ts` で数値範囲・列挙値・色・背景URLをホストと画面の両方で検証します。任意CSSは実行せず、設定からnonce付きstyle要素の変数だけを生成します。ローカル背景はPNG・JPEG・WebPのヘッダーを確認し、拡張のglobalStorageUriへコピーして `asWebviewUri` で表示します。この保存領域のみ `localResourceRoots` に追加します。埋め込み画像も表示前にホストでファイルへ変換するため、CSPにdata URIやインラインスクリプトの許可は追加しません。HTTPS背景はユーザー指定の配信元へアクセスします。
+
 ## 関連資料
 
 [Wikiホーム](../README.md) / [構成と描画経路](architecture.md) / [配布物の作成](../development/packaging.md)

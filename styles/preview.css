@@ -5,8 +5,13 @@ body {
   --design-muted: var(--vscode-descriptionForeground, #656d76);
   --design-surface: var(--vscode-textCodeBlock-background, #f6f8fa);
   --design-font-family: system-ui, -apple-system, "Segoe UI", "Noto Sans JP", sans-serif;
-  --design-line-height: 1.85;
-  --design-block-gap: calc(var(--vscode-editor-font-size, 14px) * var(--design-line-height));
+  --design-line-height: 1.75;
+  --design-block-gap: 1.25em;
+  --reading-font-size: 15px;
+  --reading-indent: 2.2em;
+  --reading-list-gap: 0.3em;
+  --reading-marker-size: 1.15em;
+  --reading-guides: 1px;
   color: var(--vscode-editor-foreground, #24292f);
   background: var(--vscode-editor-background, #fff);
   max-width: 900px;
@@ -15,13 +20,14 @@ body {
   line-height: var(--design-line-height);
   overflow-wrap: anywhere;
   color-scheme: light;
+  font-size: var(--reading-font-size);
 }
 body.vscode-dark { color-scheme: dark; }
 body.vscode-high-contrast { color-scheme: dark; }
 body.vscode-high-contrast-light { color-scheme: light; }
 body.design-preview {
   font-family: var(--design-font-family);
-  font-size: var(--vscode-editor-font-size, 14px);
+  font-size: var(--reading-font-size);
 }
 * { box-sizing: border-box; }
 h1, h2, h3, h4, h5, h6, .workbench #editor .cm-live-heading {
@@ -47,8 +53,12 @@ strong, .cm-live-strong { font-weight: 650; }
 em, .cm-live-emphasis { font-style: italic; }
 s, .cm-live-strike, .cm-live-task-done { text-decoration: line-through; }
 u, .cm-live-underline { text-decoration: underline; text-underline-offset: 0.2em; }
-ul, ol { margin: 0 0 var(--design-block-gap); padding-left: 1.7em; }
-li { margin: 0; }
+ul, ol { margin: 0 0 var(--design-block-gap); padding-left: var(--reading-indent); }
+li { margin: var(--reading-list-gap) 0; padding-left: 0.25em; }
+li::marker { color: var(--design-accent); font-weight: 750; font-size: var(--reading-marker-size); }
+li > ul, li > ol { margin-top: 0.3em; margin-bottom: 0.3em; border-left: var(--reading-guides) solid var(--design-border); }
+ul ul { list-style-type: circle; }
+ul ul ul { list-style-type: square; }
 li > p { margin: 0.5em 0; }
 li.task-list-item { list-style: none; }
 input[type="checkbox"], .cm-live-task {

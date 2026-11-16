@@ -23,7 +23,8 @@ export function createEditor(parent: HTMLElement, onChange: (text: string) => vo
     { tag: [tags.number, tags.bool], color: dark ? '#79c0ff' : '#0550ae' },
     { tag: tags.comment, color: dark ? '#a0adbb' : '#57606a', fontStyle: 'italic' },
   ]));
-  const dark = () => document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast');
+  const dark = () => document.body.dataset.readingScheme === 'dark' || (document.body.dataset.readingScheme !== 'light' &&
+    (document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')));
   let remote = false;
   const view = new EditorView({ parent, state: EditorState.create({ extensions: [
     EditorView.cspNonce.of(document.querySelector<HTMLMetaElement>('meta[name="style-nonce"]')?.content || ''),
@@ -58,7 +59,7 @@ export function createEditor(parent: HTMLElement, onChange: (text: string) => vo
     EditorView.contentAttributes.of({ 'aria-label': 'Markdown本文を編集', spellcheck: 'false' }),
   ] }) });
   const observer = new MutationObserver(() => view.dispatch({ effects: palette.reconfigure(highlight(dark())) }));
-  observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  observer.observe(document.body, { attributes: true, attributeFilter: ['class', 'data-reading-scheme'] });
   function setText(text: string) {
     const delta = textChange(view.state.doc.toString(), text);
     if (!delta) return;

@@ -8,12 +8,15 @@ import { DocumentSearch } from './document-search';
 import { useDocumentSearch } from '../../hooks/use-document-search';
 import { ConflictNotice } from './conflict-notice';
 import { StatusMessage } from '../common/status-message';
+import { useAppearance } from '../../hooks/use-appearance';
+import { AppearanceSettings } from './appearance-settings';
 
 export function Workbench({ controller }: { controller: WorkbenchController }) {
   const state = useSyncExternalStore(controller.subscribe, controller.getSnapshot);
   const root = useRef<HTMLElement>(null);
   const [info, setInfo] = useState<PreviewInfo>({ complete: 0, total: 0, headings: [] });
   const search = useDocumentSearch(root, state.snapshot);
+  const appearance = useAppearance(controller.send);
   useLayoutEffect(() => {
     document.body.dataset.mode = state.mode;
     if (state.ready && state.mode === 'edit') controller.focusEditor();
@@ -21,6 +24,7 @@ export function Workbench({ controller }: { controller: WorkbenchController }) {
   useEffect(() => controller.connect(window), [controller]);
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
+      if (appearance.open) return;
       if (event.defaultPrevented || !(event.ctrlKey || event.metaKey)) return;
       const key = event.key.toLowerCase();
       if (key === 's') { event.preventDefault(); void controller.action('save'); }
@@ -31,13 +35,14 @@ export function Workbench({ controller }: { controller: WorkbenchController }) {
     };
     document.addEventListener('keydown', keydown);
     return () => document.removeEventListener('keydown', keydown);
-  }, [controller, state.mode, search.input]);
+  }, [controller, state.mode, search.input, appearance.open]);
   return <>
-    <Toolbar controller={controller} state={state} info={info} root={root}
+    <Toolbar controller={controller} state={state} info={info} root={root} onAppearance={appearance.show}
       search={<DocumentSearch search={search} hidden={state.mode !== 'preview'} />} />
     <ConflictNotice visible={state.conflict} pending={state.pending} onResolve={controller.resolve} />
     <EditorPane controller={controller} hidden={state.mode !== 'edit'} />
     <Preview root={root} snapshot={state.snapshot} hidden={state.mode !== 'preview'} send={controller.send} onInfo={setInfo} />
     <StatusMessage id="message" message={state.message} />
+    <AppearanceSettings controls={appearance} />
   </>;
 }
