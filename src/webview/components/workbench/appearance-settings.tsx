@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { appearancePresets, defaultAppearance, isBackgroundImage } from '../../../shared/appearance';
+import { appearancePresets, backgroundPositions, isBackgroundImage } from '../../../shared/appearance';
 import type { Appearance } from '../../../shared/appearance';
 import type { AppearanceControls } from '../../hooks/use-appearance';
 
@@ -13,7 +13,7 @@ function Slider({ label, value, min, max, step, unit, onChange }: {
 export function AppearanceSettings({ controls }: { controls: AppearanceControls }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [url, setUrl] = useState(''), [urlError, setUrlError] = useState('');
-  const { theme, open, busy, message, change, close, request } = controls;
+  const { theme, open, busy, message, change, select, close, request } = controls;
   useEffect(() => {
     if (!open || !dialog.current) return;
     const previous = document.activeElement;
@@ -36,9 +36,10 @@ export function AppearanceSettings({ controls }: { controls: AppearanceControls 
       <button type="button" aria-label="外観設定を閉じる" disabled={busy} onClick={close}>×</button></header>
     <p className="appearance-intro">サンプルと背後の文書にすぐに反映します。「適用」で、いつもの外観として保存できます。</p>
     <div className="appearance-layout"><div className="appearance-fields"><fieldset disabled={busy}>
-      <legend>テーマ</legend><div className="appearance-presets">{appearancePresets.map(preset => <button type="button" key={preset.name}
-        aria-pressed={theme.name === preset.name} onClick={() => change({ ...preset })}>{preset.name}</button>)}</div>
-      <label>テーマ名<input maxLength={80} value={theme.name} onChange={event => update('name', event.target.value)} /></label>
+      <legend>テーマ</legend><label>プリセット<select id="appearance-preset" value={theme.name} onChange={event => select(event.target.value)}>
+        {appearancePresets.map(preset => <option key={preset.name} value={preset.name}>{preset.name}</option>)}
+        <option value="カスタム" disabled={!controls.hasCustom}>カスタム</option>
+      </select></label><small>項目を変更すると「カスタム」に切り替わります。プリセットを試した後も「カスタム」から戻せます。</small>
     </fieldset><fieldset disabled={busy}><legend>文字とリズム</legend>
       <label>フォント<select value={theme.fontFamily} onChange={event => update('fontFamily', event.target.value as Appearance['fontFamily'])}>
         <option value="sans">ゴシック（標準）</option><option value="serif">明朝</option><option value="mono">等幅（VS Code設定）</option></select></label>
@@ -60,9 +61,13 @@ export function AppearanceSettings({ controls }: { controls: AppearanceControls 
         if (url && (!url.startsWith('https:') || !isBackgroundImage(url))) { setUrlError('HTTPSの画像URLを入力してください。'); return; }
         update('backgroundImage', url);
       }}>URLを反映</button><span role="alert">{urlError}</span>
+      <label>背景画像の配置<select id="appearance-background-position" value={theme.backgroundPosition}
+        onChange={event => update('backgroundPosition', event.target.value as Appearance['backgroundPosition'])}>
+        {backgroundPositions.map(position => <option key={position.value} value={position.value}>{position.label}</option>)}
+      </select></label>
       <Slider label="背景画像の濃さ" value={theme.backgroundOpacity} min={0} max={0.4} step={0.01} unit="" onChange={value => update('backgroundOpacity', value)} />
     </fieldset><fieldset disabled={busy}><legend>テーマのファイル</legend>
-      <div className="appearance-actions"><button type="button" onClick={() => request('import')}>JSONを読み込む</button><button type="button" disabled={!theme.name.trim()} onClick={() => request('export')}>JSONに保存</button></div>
+      <div className="appearance-actions"><button type="button" onClick={() => request('import')}>インポート</button><button type="button" onClick={() => request('export')}>エクスポート</button></div>
       <small>読み込んだテーマも「適用」までは試着として表示します。</small>
     </fieldset></div><aside className="appearance-sample" aria-label="外観サンプル">
       <small>LIVE PREVIEW</small><h2>読みやすさを、あなたらしく。</h2>
@@ -71,9 +76,9 @@ export function AppearanceSettings({ controls }: { controls: AppearanceControls 
       <blockquote>いつものノートを、心地よい場所に。</blockquote><p><a href="#" onClick={event => event.preventDefault()}>リンクのアクセント</a> と <code>inline code</code></p>
     </aside></div>
     <footer><span role="status">{busy ? '処理中…' : message}</span><div className="appearance-actions">
-      <button type="button" disabled={busy} onClick={() => change({ ...defaultAppearance })}>初期値に戻す</button>
+      <button type="button" disabled={busy} onClick={controls.reset}>初期値に戻す</button>
       <button type="button" disabled={busy} onClick={close}>キャンセル</button>
-      <button type="button" className="appearance-apply" disabled={busy || !theme.name.trim()} onClick={() => request('save')}>適用</button>
+      <button type="button" className="appearance-apply" disabled={busy} onClick={() => request('save')}>適用</button>
     </div></footer>
   </dialog>;
 }

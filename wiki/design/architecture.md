@@ -96,6 +96,8 @@ Markdown本文は拡張ホストでサニタイズしたHTMLのみを、`Preview
 
 外観設定の画面は `AppearanceSettings`、試着と保存済みの外観の管理は `use-appearance.ts` に分けます。`styles/appearance.css` は設定UIと専用文書・サンプルのテーマ指定です。フックが検証済みの設定からnonce付きstyle要素を生成し、CSS変数を設定します。CodeMirrorの構文色分けとMermaidは外観の明るさにも追従します。保存はホスト側の `AppearanceService` が行い、同一ウィンドウの専用画面へ通知します。
 
+外観は選択中のテーマと、別に保持するカスタム1件を `AppearanceProfile` としてglobalStateの `happyMarkdown.appearance.v2` へまとめて保存します。旧v1のテーマは設定値を維持して読み込みます。JSONのテーマ形式はv1を維持し、インポート時にプリセットの値との一致を判定して名称を正規化します。テーマ名は画面から変更しません。
+
 ## 統合サイドバー
 
 `happyMarkdown.explorer` は1つのWebviewViewです。従来のTreeViewと検索用WebviewViewを統合し、ファイル一覧・本文検索・ブックマークの切り替えもReactで描画します。アクティビティバーの入口と外部から呼べる既存コマンドは維持し、モード切り替え・更新・文書追従のアイコンはWebview内の `ExplorerNavigation` に置きます。

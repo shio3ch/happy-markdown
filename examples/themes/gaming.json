@@ -16,5 +16,6 @@
   "background": "#101322",
   "accent": "#55f5cb",
   "backgroundImage": "",
+  "backgroundPosition": "center center",
   "backgroundOpacity": 0.12
 }

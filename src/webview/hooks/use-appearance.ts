@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useState } from 'react';
-import { defaultAppearance, isAppearanceResult } from '../../shared/appearance';
-import type { Appearance } from '../../shared/appearance';
+import { appearancePresets, defaultAppearance, isAppearanceResult, normalizeAppearance } from '../../shared/appearance';
+import type { Appearance, AppearanceProfile } from '../../shared/appearance';
 import type { EditorMessage } from '../../shared/messages';
 
 const families = {
@@ -8,25 +8,32 @@ const families = {
   serif: '"Yu Mincho", "Hiragino Mincho ProN", serif',
   mono: 'var(--vscode-editor-font-family, monospace)',
 };
+interface AppearanceState extends AppearanceProfile { backgroundUri: string; customBackgroundUri?: string }
+function withTheme(current: AppearanceState, theme: Appearance, backgroundUri: string): AppearanceState {
+  return { ...current, theme, backgroundUri, ...(theme.name === 'カスタム' ? { custom: theme, customBackgroundUri: backgroundUri } : {}) };
+}
 export function useAppearance(send: (message: EditorMessage) => void) {
-  const [saved, setSaved] = useState(defaultAppearance), [draft, setDraft] = useState<Appearance>();
-  const [savedUri, setSavedUri] = useState(''), [draftUri, setDraftUri] = useState('');
+  const [saved, setSaved] = useState<AppearanceState>({ theme: defaultAppearance, backgroundUri: '' });
+  const [draft, setDraft] = useState<AppearanceState>();
   const [busy, setBusy] = useState(false), [message, setMessage] = useState('');
-  const theme = draft || saved, backgroundUri = draft ? draftUri : savedUri;
+  const current = draft || saved;
+  const { theme, backgroundUri } = current;
   useEffect(() => {
     const receive = (event: MessageEvent<unknown>) => {
       const result = event.data;
       if (!isAppearanceResult(result)) return;
       if (result.action !== 'load') { setBusy(false); setMessage(result.message || ''); }
       if (!result.theme) return;
+      const theme = normalizeAppearance(result.theme);
       if (result.action === 'load' || result.action === 'save') {
-        setSaved(result.theme); setSavedUri(result.backgroundUri || '');
+        setSaved(withTheme({ theme, backgroundUri: result.backgroundUri || '', custom: result.custom,
+          customBackgroundUri: result.customBackgroundUri }, theme, result.backgroundUri || ''));
         if (result.action === 'save') setDraft(undefined);
       } else if (result.action === 'import') {
-        setDraft(result.theme); setDraftUri(result.backgroundUri || '');
+        setDraft(current => current ? withTheme(current, theme, result.backgroundUri || '') : undefined);
       } else if (result.action === 'background') {
-        setDraft(current => current ? { ...current, backgroundImage: result.theme!.backgroundImage } : undefined);
-        setDraftUri(result.backgroundUri || '');
+        setDraft(current => current ? withTheme(current,
+          { ...current.theme, name: 'カスタム', backgroundImage: theme.backgroundImage }, result.backgroundUri || '') : undefined);
       }
     };
     window.addEventListener('message', receive);
@@ -50,6 +57,7 @@ export function useAppearance(send: (message: EditorMessage) => void) {
       --reading-accent:${accent}; --reading-surface:color-mix(in srgb, ${bg} 92%, ${fg});
       --reading-border:color-mix(in srgb, ${bg} 78%, ${fg});
       --reading-image:${backgroundUri ? `url("${backgroundUri}")` : 'none'};
+      --reading-image-position:${theme.backgroundPosition};
       --reading-overlay:${(1 - theme.backgroundOpacity) * 100}%;
     }`;
     document.head.append(style);
@@ -58,14 +66,24 @@ export function useAppearance(send: (message: EditorMessage) => void) {
     return () => style.remove();
   }, [theme, backgroundUri]);
   return {
-    theme, open: Boolean(draft), busy, message,
-    show: () => { setDraft({ ...saved }); setDraftUri(savedUri); setMessage(''); },
+    theme, hasCustom: Boolean(current.custom), open: Boolean(draft), busy, message,
+    show: () => { setDraft({ ...saved }); setMessage(''); },
     close: () => { if (!busy) { setDraft(undefined); setMessage(''); } },
-    change: (next: Appearance) => { setDraft(next); if (next.backgroundImage !== theme.backgroundImage) setDraftUri(next.backgroundImage.startsWith('https:') ? next.backgroundImage : ''); },
+    reset: () => { if (!busy) { setDraft({ theme: defaultAppearance, backgroundUri: '' }); setMessage(''); } },
+    change: (next: Appearance) => {
+      if ((Object.keys(theme) as (keyof Appearance)[]).every(key => key === 'name' || theme[key] === next[key])) return;
+      const uri = next.backgroundImage === theme.backgroundImage ? backgroundUri : next.backgroundImage.startsWith('https:') ? next.backgroundImage : '';
+      setDraft(withTheme(current, { ...next, name: 'カスタム' }, uri));
+    },
+    select: (name: string) => {
+      const next = name === 'カスタム' ? current.custom : appearancePresets.find(preset => preset.name === name);
+      if (next) setDraft({ ...current, theme: next, backgroundUri: name === 'カスタム' ? current.customBackgroundUri || '' : '' });
+    },
     request: (action: 'save' | 'export' | 'import' | 'background') => {
       if (busy) return;
       setBusy(true); setMessage('');
-      send(action === 'save' || action === 'export' ? { type: 'appearance', action, theme } : { type: 'appearance', action });
+      if (action === 'save') send({ type: 'appearance', action, theme, custom: current.custom || null });
+      else send(action === 'export' ? { type: 'appearance', action, theme } : { type: 'appearance', action });
     },
   };
 }

@@ -1,18 +1,25 @@
 import type * as vscode from 'vscode';
 import { createHash } from 'node:crypto';
-import { defaultAppearance, isAppearance, maxAppearanceBytes } from '../shared/appearance';
-import type { Appearance, AppearanceRequest, AppearanceResult } from '../shared/appearance';
+import { defaultAppearance, readAppearance, readAppearanceProfile, maxAppearanceBytes, normalizeAppearance } from '../shared/appearance';
+import type { Appearance, AppearanceProfile, AppearanceRequest, AppearanceResult } from '../shared/appearance';
 
-const key = 'happyMarkdown.appearance.v1';
+const key = 'happyMarkdown.appearance.v2';
 export class AppearanceService {
   private listeners = new Set<() => Promise<void>>();
   // 別の文書からの保存も順序通りに処理する。
   private saving: Promise<unknown> = Promise.resolve();
   constructor(private readonly context: vscode.ExtensionContext, private readonly api: typeof vscode) {}
   subscribe(listener: () => Promise<void>) { this.listeners.add(listener); return { dispose: () => { this.listeners.delete(listener); } }; }
-  private current(): Appearance {
-    const saved = this.context.globalState.get<unknown>(key);
-    return isAppearance(saved) ? saved : defaultAppearance;
+  private current(): AppearanceProfile {
+    const saved = readAppearanceProfile(this.context.globalState.get<unknown>(key));
+    if (saved) return { ...saved, theme: normalizeAppearance(saved.theme) };
+    const legacy = readAppearance(this.context.globalState.get<unknown>('happyMarkdown.appearance.v1'));
+    const theme = normalizeAppearance(legacy || defaultAppearance);
+    return { theme, custom: theme.name === 'カスタム' ? theme : undefined };
+  }
+  private async resources(profile: AppearanceProfile, webview: vscode.Webview) {
+    return { ...profile, backgroundUri: await this.resource(profile.theme, webview),
+      customBackgroundUri: profile.custom ? await this.resource(profile.custom, webview) : undefined };
   }
   private async resource(theme: Appearance, webview: vscode.Webview): Promise<string> {
     const image = theme.backgroundImage;
@@ -32,31 +39,31 @@ export class AppearanceService {
     const reply = (result: Omit<AppearanceResult, 'type' | 'action'>) => webview.postMessage({ type: 'appearanceResult', action: request.action, ...result } satisfies AppearanceResult);
     try {
       if (request.action === 'load') {
-        const theme = this.current();
-        await reply({ theme, backgroundUri: await this.resource(theme, webview) });
+        await reply(await this.resources(this.current(), webview));
       } else if (request.action === 'save') {
-        const theme = request.theme;
-        const backgroundUri = await this.resource(theme, webview);
-        this.saving = this.saving.catch(() => {}).then(() => this.context.globalState.update(key, theme));
+        const theme = normalizeAppearance(request.theme);
+        const profile = { theme, custom: theme.name === 'カスタム' ? theme : request.custom === null ? undefined : request.custom || this.current().custom };
+        const result = await this.resources(profile, webview);
+        this.saving = this.saving.catch(() => {}).then(() => this.context.globalState.update(key, profile));
         await this.saving;
-        await reply({ theme, backgroundUri, message: '外観を適用しました。' });
+        await reply({ ...result, message: '外観を適用しました。' });
         await Promise.allSettled([...this.listeners].map(listener => listener()));
       } else if (request.action === 'export') {
-        const uri = await this.api.window.showSaveDialog({ filters: { 'Happy Markdownテーマ': ['json'] }, saveLabel: 'テーマを保存' });
+        const uri = await this.api.window.showSaveDialog({ filters: { 'Happy Markdownテーマ': ['json'] }, saveLabel: 'エクスポート' });
         if (!uri) { await reply({}); return; }
         // テーマの保存操作でMarkdown本文を上書きさせない。
         if (!/\.json$/i.test(uri.path)) throw new Error('JSONファイルを選んでください。');
-        await this.api.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(request.theme, null, 2) + '\n'));
-        await reply({ message: 'テーマをJSONに保存しました。' });
+        await this.api.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(normalizeAppearance(request.theme), null, 2) + '\n'));
+        await reply({ message: 'テーマをエクスポートしました。' });
       } else if (request.action === 'import') {
-        const files = await this.api.window.showOpenDialog({ canSelectMany: false, filters: { 'Happy Markdownテーマ': ['json'] }, openLabel: 'テーマを読み込む' });
+        const files = await this.api.window.showOpenDialog({ canSelectMany: false, filters: { 'Happy Markdownテーマ': ['json'] }, openLabel: 'インポート' });
         if (!files?.[0]) { await reply({}); return; }
         if ((await this.api.workspace.fs.stat(files[0])).size > maxAppearanceBytes + 8192) throw new Error('テーマは3MB以内にしてください。');
         const bytes = await this.api.workspace.fs.readFile(files[0]);
         if (bytes.byteLength > maxAppearanceBytes + 8192) throw new Error('テーマは3MB以内にしてください。');
-        const theme: unknown = JSON.parse(Buffer.from(bytes).toString('utf8'));
-        if (!isAppearance(theme)) throw new Error('テーマの形式・設定範囲が正しくありません（schemaVersion: 1）。');
-        await reply({ theme, backgroundUri: await this.resource(theme, webview), message: '読み込みました。「適用」で保存できます。' });
+        const theme = readAppearance(JSON.parse(Buffer.from(bytes).toString('utf8')));
+        if (!theme) throw new Error('テーマの形式・設定範囲が正しくありません（schemaVersion: 1）。');
+        await reply({ theme: normalizeAppearance(theme), backgroundUri: await this.resource(theme, webview), message: 'インポートしました。「適用」で保存できます。' });
       } else {
         const files = await this.api.window.showOpenDialog({ canSelectMany: false, filters: { '背景画像': ['png', 'jpg', 'jpeg', 'webp'] }, openLabel: '背景画像を選ぶ' });
         if (!files?.[0]) { await reply({}); return; }
@@ -66,7 +73,7 @@ export class AppearanceService {
         if (!mime) throw new Error('PNG・JPEG・WebPを選んでください。');
         const bytes = await this.api.workspace.fs.readFile(files[0]);
         if (bytes.byteLength > 2 * 1024 * 1024) throw new Error('背景画像は2MB以内にしてください。');
-        const theme = { ...this.current(), backgroundImage: `data:image/${mime};base64,${Buffer.from(bytes).toString('base64')}` };
+        const theme = { ...this.current().theme, backgroundImage: `data:image/${mime};base64,${Buffer.from(bytes).toString('base64')}` };
         await reply({ theme, backgroundUri: await this.resource(theme, webview) });
       }
     } catch (error) {
