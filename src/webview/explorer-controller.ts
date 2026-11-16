@@ -1,13 +1,13 @@
-import { isExplorerState } from '../shared/messages';
-import type { SearchAction, ExplorerState, ExplorerMode } from '../shared/messages';
+import { isExplorerFocus, isExplorerState, isExplorerTreeCommand } from '../shared/messages';
+import type { ExplorerAction, ExplorerState, ExplorerMode, FileOperation } from '../shared/messages';
 import type { WebviewApi } from './api';
 
 export class ExplorerController {
   private readonly listeners = new Set<() => void>();
   private revision = 0;
   private composing = false;
-  private current: ExplorerState & { initialized: boolean } = {
-    type: 'state', mode: 'files', nodes: [], expandedIds: [], followActive: true, hasWorkspace: false, revealRevision: 0,
+  private current: ExplorerState & { initialized: boolean; focusId?: string; focusRevision: number; treeCommand?: 'contextMenu' | 'toggleFolder'; treeCommandRevision: number } = {
+    focusRevision: 0, treeCommandRevision: 0, type: 'state', mode: 'files', nodes: [], expandedIds: [], followActive: true, hasWorkspace: false, revealRevision: 0,
     busy: false, query: '', requestId: 0, status: '', results: [], initialized: false,
   };
   constructor(private readonly api: Pick<WebviewApi, 'postMessage'>) {}
@@ -40,11 +40,17 @@ export class ExplorerController {
   follow = (enabled: boolean) => this.api.postMessage({ type: 'follow', enabled });
   refresh = () => this.api.postMessage({ type: 'refresh' });
   openFolder = () => this.api.postMessage({ type: 'openFolder' });
-  action = (type: SearchAction, id: string) => this.api.postMessage({ type, id });
+  action = (type: ExplorerAction, id: string) => this.api.postMessage({ type, id });
+  fileOperation = (action: FileOperation, id?: string) => this.api.postMessage({ type: 'fileOperation', action, id });
+  treeFocus = (focused: boolean) => this.api.postMessage({ type: 'treeFocus', focused });
+  selection = (id?: string) => this.api.postMessage({ type: 'selection', id });
+  move = (id: string, targetId?: string) => this.api.postMessage({ type: 'move', id, targetId });
   receive(value: unknown) {
+    if (isExplorerTreeCommand(value)) { this.publish({ ...this.current, treeCommand: value.command, treeCommandRevision: this.current.treeCommandRevision + 1 }); return; }
+    if (isExplorerFocus(value)) { this.publish({ ...this.current, focusId: value.id, focusRevision: this.current.focusRevision + 1 }); return; }
     if (!isExplorerState(value)) return;
     if (this.current.initialized && (value.requestId < this.revision || value.query !== this.current.query)) return;
     this.revision = value.requestId;
-    this.publish({ ...value, initialized: true });
+    this.publish({ ...value, initialized: true, focusId: this.current.focusId, focusRevision: this.current.focusRevision, treeCommand: this.current.treeCommand, treeCommandRevision: this.current.treeCommandRevision });
   }
 }

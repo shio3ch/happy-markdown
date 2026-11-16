@@ -1,4 +1,7 @@
 const icons = {
+  newFile: <><path d="M14 3H5v18h14V8l-5-5v5h5M8 14h8M12 10v8" /></>,
+  newFolder: <><path d="M3 6h7l2 3h9v12H3zM8 15h8M12 11v8" /></>,
+  paste: <><path d="M8 5H4v17h16V5h-4M8 3h8v5H8zM8 12h8M8 16h8" /></>,
   files: <><path d="M5 3h10l4 4v14H5zM15 3v5h4M8 12h8M8 16h8" /></>,
   search: <><circle cx="10" cy="10" r="6" /><path d="m15 15 6 6" /></>,
   bookmark: <><path d="M6 3h12v18l-6-4-6 4z" /></>,

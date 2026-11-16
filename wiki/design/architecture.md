@@ -24,6 +24,8 @@ src/
 | `src/extension/markdown.ts` | Markdown描画、HTMLサニタイズ、タスク編集 |
 | `src/extension/text-change.ts` / `src/extension/images.ts` | 差分編集、画像選択・コピー |
 | `src/extension/explorer.ts` | ファイルツリー構築、検索・ブックマーク・文書追従・開閉状態の制御 |
+| `src/extension/explorer-files.ts` | 空フォルダーの取得、作成・複製・移動・削除・クリップボード、操作の直列化とパス検証 |
+| `src/extension/explorer-keybindings.ts` | キーバインド用のフォーカス・選択・クリップボード・処理中のコンテキストをVS Codeに提供 |
 | `src/extension/explorer-view.ts` | 統合サイドバーのWebviewView、CSP、ID照合、表示用データとローカルアイコンURIの生成 |
 | `src/extension/workspace-search.ts` | 画面から独立した検索条件・本文検索処理 |
 | `src/extension/types.ts` | ホスト内のエクスプローラーと検索のデータ型 |
@@ -95,7 +97,9 @@ Markdown本文は拡張ホストでサニタイズしたHTMLのみを、`Preview
 
 `happyMarkdown.explorer` は1つのWebviewViewです。従来のTreeViewと検索用WebviewViewを統合し、ファイル一覧・本文検索・ブックマークの切り替えもReactで描画します。アクティビティバーの入口と外部から呼べる既存コマンドは維持し、モード切り替え・更新・文書追従のアイコンはWebview内の `ExplorerNavigation` に置きます。
 
-`FileTree` と `FileTreeItem` はツリーの階層・フォーカス・選択を管理し、`FileActions` と `FileContextMenu` がソース表示・ブックマーク操作を提供します。開閉状態はホストが保持し、更新やモード切り替えでも維持します。文書追従では必要な親を開いて該当行を表示しますが、フォーカスを奪ったり非表示ビューを自動で開いたりしません。
+`FileTree` と `FileTreeItem` はツリーの階層・フォーカス・選択を管理し、`FileActions` が行内のソース表示・ブックマーク操作を提供し、`FileContextMenu` がファイル操作を提供します。メニューはPortalでbody配下に置き、画面内に収まる位置と高さを計算します。`ExplorerFiles` は検証済みIDに対応するURIを使い、ファイル操作を直列化します。名前とワークスペース境界・シンボリックリンクを検証し、ファイルの変更はWorkspaceEdit、フォルダー作成はworkspace.fsを使います。開閉状態はホストが保持し、更新やモード切り替えでも維持します。文書追従では必要な親を開いて該当行を表示しますが、フォーカスを奪ったり非表示ビューを自動で開いたりしません。
+
+ファイル操作のキーは `package.json` の `contributes.keybindings` に登録し、VS Codeで解決します。`src/extension/explorer-keybindings.ts` が `setContext` を使い、ツリーのフォーカス・選択種別・ルート・クリップボード・処理中の状態を提供します。ホストの `happyMarkdown.explorer.*` コマンドは選択IDを照合して処理し、Webviewはキーの組み合わせから操作を再実行しません。`useExplorerTreeFocus` は選択IDをフォーカス有効化より先に通知し、Webviewの再フォーカス時にも状態と操作行を復元します。`setContext` の更新はAPI応答の直列待ちを挟まずイベント順で発行します。コピー等のクリップボードだけを変える操作ではツリーを再取得しません。メニュー表示・フォルダー開閉のUIコマンドはホストからコントローラーへ通知します。独自メニューのキー表記は `src/webview/explorer-keybinding-labels.ts` の既定表示だけに限定します。名前変更・削除の完了後は `focusTree` 応答でツリーへフォーカスを戻し、通常の文書追従ではフォーカスを奪いません。
 
 本文検索は `{ text }` の条件オブジェクトを受け取る処理として分離し、世代番号で古い非同期処理を無効にします。Webview側でも入力IDと検索語を照合します。ファイル・フォルダーの操作はホストが保持する表示用データ内のIDに限定します。サイドバーのスクリプトは `dist/explorer.js`、CSSは `styles/explorer.css` で、ローカルアイコンを含め拡張に同梱します。
 

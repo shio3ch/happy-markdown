@@ -25,7 +25,7 @@
 - アプリ本体はTypeScript、WebviewのUIはReact（TSX）で記述し、既存の命名・スタイルに合わせる。型検査はstrictを維持し、依頼なく別フレームワークへ移行しない。テストとビルド起動スクリプトは既存のCommonJS形式を使用する。
 - VS Code APIへの依存は拡張ホスト側に置き、Webviewへ直接持ち込まない。ReactはWebviewだけで使用する。CodeMirrorはEffectで生成・破棄し、モード切り替えでは再生成しない。文書同期は `DocumentSession` とコントローラーに分離し、Reactの描画タイミングに依存させない。
 - ライブ編集の文字装飾は `src/webview/live-preview.ts` に置き、構文木と表示範囲を使う。表は `src/webview/table-preview.ts` のStateFieldから直接供給し、入力UIは `table-view.ts`、行・列の操作メニューと並べ替えは `table-controls.ts`、セルの安全な描画・変換は `table-cell.ts`、文書上の差分計算は `table-model.ts` に分離する。文章の選択行では記法を表示し、表はセルを直接編集する。表示のためだけに本文を書き換えず、表の編集はCodeMirrorの変更として既存の文書同期へ渡す。コード内へのMarkdown装飾と、IME変換中のセルDOMの組み直しを避ける。
-- サイドバーのファイル一覧・検索・ブックマークは、1つのWebviewView内にReactコンポーネントとして実装する。モード切り替えやファイル操作は検証済みのメッセージでホストへ依頼し、ツリーの開閉状態・追従・キーボード操作を維持する。検索条件と本文検索処理は `src/extension/workspace-search.ts` に分離し、入力ID・検索世代の整合性を維持する。
+- サイドバーのファイル一覧・検索・ブックマークは、1つのWebviewView内にReactコンポーネントとして実装する。モード切り替えやファイル操作は検証済みのメッセージでホストへ依頼し、ファイル操作のショートカットは `package.json` の `contributes.keybindings` と `commands.registerCommand` を使い、Webview内でキーの組み合わせを再判定しない。フォーカス・選択などの条件は `src/extension/explorer-keybindings.ts` から `setContext` へ渡す。独自メニューのキー表記は既定値と明示する。ツリーの開閉状態・追従・キーボード操作を維持する。ファイル操作と空フォルダー取得は `src/extension/explorer-files.ts` に分離し、ファイルの作成・複製・移動・名前変更・削除はWorkspaceEditを使う。フォルダーの作成だけは `workspace.fs.createDirectory` を使い、Undo対象外とする。検索条件と本文検索処理は `src/extension/workspace-search.ts` に分離し、入力ID・検索世代の整合性を維持する。
 - UI部品は `src/webview/components/common`、`src/webview/components/workbench`、`src/webview/components/explorer` に分ける。画面の起動用エントリーに部品の実装を集めず、状態やDOM連携のフックは `src/webview/hooks` に置く。
 - `dist/` は生成物。直接編集せず `npm run build` で生成する。ビルドは `npm run clean` で以前の生成物を消してから出力し、廃止したバンドルを配布物へ残さない。
 - UIの文言は日本語を基本とし、ライト・ダークテーマ、キーボード操作、フォーカス表示を維持する。

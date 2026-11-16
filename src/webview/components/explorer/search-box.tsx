@@ -1,4 +1,5 @@
 import { useRef } from 'react';
+import { Tooltip } from '../common/tooltip';
 
 export function SearchBox({ query, disabled, onChange, onCompositionStart, onCompositionEnd }: {
   query: string; disabled: boolean; onChange(value: string): void; onCompositionStart(): void; onCompositionEnd(value: string): void;
@@ -8,6 +9,6 @@ export function SearchBox({ query, disabled, onChange, onCompositionStart, onCom
     <input id="query" type="search" ref={input} disabled={disabled} placeholder="検索する言葉を入力" autoComplete="off" spellCheck={false} aria-describedby="search-help"
       value={query} onChange={event => onChange(event.currentTarget.value)} onCompositionStart={onCompositionStart}
       onCompositionEnd={event => onCompositionEnd(event.currentTarget.value)} />
-    <button id="clear" type="button" title="検索語をクリア" aria-label="検索語をクリア" onClick={() => { onChange(''); input.current?.focus(); }}>×</button>
+    <Tooltip text="検索語と検索結果をクリア"><button id="clear" type="button" aria-label="検索語をクリア" onClick={() => { onChange(''); input.current?.focus(); }}>×</button></Tooltip>
   </div><p id="search-help">全Markdownから検索 · 大文字・小文字を区別しない</p></div>;
 }

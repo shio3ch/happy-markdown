@@ -18,7 +18,7 @@ test('React search handles input, IME composition, old responses and clearing', 
     assert.equal(query.disabled, false);
     query.dispatchEvent(new c.window.CompositionEvent('compositionstart', { bubbles: true }));
     await c.input(query, '文');
-    assert.equal(c.sent.length, 1);
+    assert.equal(c.sent.filter(message => message.type === 'query').length, 0);
     Object.getOwnPropertyDescriptor(c.window.HTMLInputElement.prototype, 'value').set.call(query, '文書');
     query.dispatchEvent(new c.window.CompositionEvent('compositionend', { bubbles: true, data: '文書' }));
     await new Promise(resolve => setTimeout(resolve, 5));

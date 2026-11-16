@@ -1,3 +1,4 @@
+import { ExplorerFiles, workspaceDirectories, excludedFolders } from './explorer-files';
 import { searchDocuments } from './workspace-search';
 import { registerExplorerView } from './explorer-view';
 import type { ExplorerMode } from '../shared/messages';
@@ -7,17 +8,18 @@ import type { ExplorerNode } from './types';
 
 interface FolderNode extends ExplorerNode { children: ExplorerNode[]; folders: Map<string, FolderNode> }
 
-// Build only the folder paths that contain Markdown files.
-export function buildTree(files: readonly VSCode.Uri[], folders: readonly VSCode.WorkspaceFolder[], api: typeof VSCode): ExplorerNode[] {
+// Keep Markdown paths and empty directories in the same sorted tree.
+export function buildTree(files: readonly VSCode.Uri[], folders: readonly VSCode.WorkspaceFolder[], api: typeof VSCode, directories: readonly VSCode.Uri[] = []): ExplorerNode[] {
   const roots: FolderNode[] = folders.map(folder => ({ label: folder.name, uri: folder.uri, children: [], folders: new Map() }));
-  for (const uri of files) {
+  const directoryIds = new Set(directories.map(uri => uri.toString()));
+  for (const uri of [...directories, ...files]) {
     const folder = api.workspace.getWorkspaceFolder(uri);
     const root = roots.find(item => item.uri.toString() === folder?.uri.toString());
     if (!root) continue;
     const relative = uri.path.slice(root.uri.path.replace(/\/$/, '').length + 1);
     const parts = relative.split('/');
     let parent = root;
-    for (const part of parts.slice(0, -1)) {
+    for (const part of directoryIds.has(uri.toString()) ? parts : parts.slice(0, -1)) {
       if (!parent.folders.has(part)) {
         const child = { label: part, uri: api.Uri.joinPath(parent.uri, part), children: [], folders: new Map() };
         parent.folders.set(part, child);
@@ -25,7 +27,7 @@ export function buildTree(files: readonly VSCode.Uri[], folders: readonly VSCode
       }
       parent = parent.folders.get(part)!;
     }
-    parent.children.push({ label: parts.at(-1)!, uri });
+    if (!directoryIds.has(uri.toString())) parent.children.push({ label: parts.at(-1)!, uri });
   }
   const sort = (nodes: ExplorerNode[]): ExplorerNode[] => {
     nodes.sort((a, b) => Number(Boolean(b.children)) - Number(Boolean(a.children)) || a.label.localeCompare(b.label, undefined, { numeric: true }));
@@ -62,6 +64,33 @@ export function registerExplorer(context: VSCode.ExtensionContext, vscode: typeo
     if (!(input instanceof vscode.TabInputText || input instanceof vscode.TabInputCustom)) return;
     return /\.(md|markdown)$/i.test(input.uri.path) ? input.uri.toString() : undefined;
   }
+  async function remapResources(from: VSCode.Uri, to: VSCode.Uri) {
+    const remap = (id: string) => id === from.toString() || id.startsWith(from.toString().replace(/\/$/, '') + '/') ? to.toString() + id.slice(from.toString().length) : id;
+    bookmarkWrites = bookmarkWrites.then(async () => {
+      bookmarks = new Set([...bookmarks].map(remap));
+      await context.workspaceState.update(bookmarkKey, [...bookmarks]);
+    }).catch(error => { void vscode.window.showWarningMessage(`ブックマークを更新できませんでした: ${String(error)}`); });
+    await bookmarkWrites;
+    const expanded = [...expandedFolders].map(remap);
+    expandedFolders.clear(); expanded.forEach(id => expandedFolders.add(id));
+    if (activeUri) activeUri = remap(activeUri);
+  }
+  const fileOperations = new ExplorerFiles(vscode, async (from, to, created) => {
+    if (from && to) await remapResources(from, to);
+    const destination = to || created;
+    if (destination) {
+      let parent = vscode.Uri.joinPath(destination, '..');
+      const root = vscode.workspace.getWorkspaceFolder(destination);
+      while (root && parent.path.length >= root.uri.path.length) {
+        expandedFolders.add(parent.toString());
+        if (parent.toString() === root.uri.toString()) break;
+        parent = vscode.Uri.joinPath(parent, '..');
+      }
+      revealId = destination.toString(); revealRevision++;
+    }
+    generation++; cached = undefined; clearTimeout(queryTimer);
+    await publish();
+  }, () => render());
   const panel = registerExplorerView(context, vscode, {
     ready: () => publish(true), refresh, mode: selectMode, follow: setFollowActive,
     query(value, id) {
@@ -78,15 +107,19 @@ export function registerExplorer(context: VSCode.ExtensionContext, vscode: typeo
       if (expanded) expandedFolders.add(id); else expandedFolders.delete(id);
       render();
     },
+    cancelCut: () => fileOperations.run('cancelCut'),
+    fileOperation: (action, node) => fileOperations.run(action, node),
+    move: (node, target) => fileOperations.run('move', node, target),
     action(type, node) {
       if (type === 'bookmark') return changeBookmark(node, !bookmarks.has(node.uri.toString()));
-      return open(node.uri, type === 'source');
+      return open(node.uri, type === 'source', ['openTab', 'openSide'].includes(type), type === 'openSide', type === 'openPreview');
     },
   });
   function render() {
     if (disposed) return;
     panel.render({ mode, query, requestId, status, busy, bookmarks: [...bookmarks], expandedIds: [...expandedFolders],
-      activeUri: followActive ? activeUri : undefined, followActive, revealId, revealRevision, hasWorkspace: Boolean(vscode.workspace.workspaceFolders?.length) }, nodes);
+      cutId: fileOperations.cutId, canPaste: fileOperations.canPaste,
+      activeUri: followActive ? activeUri : undefined, followActive, revealId, revealRevision, hasWorkspace: Boolean(vscode.workspace.workspaceFolders?.length), platform: process.platform === 'darwin' ? 'mac' : process.platform === 'win32' ? 'windows' : 'linux' }, nodes);
   }
   async function load() {
     const version = generation, selectedMode = mode, term = query;
@@ -94,8 +127,11 @@ export function registerExplorer(context: VSCode.ExtensionContext, vscode: typeo
     try {
       const files = await vscode.workspace.findFiles(pattern, '**/{node_modules,.git,.cache}/**');
       if (!current()) return { nodes: [], status: '' };
-      if (selectedMode === 'files') return { nodes: buildTree(files, vscode.workspace.workspaceFolders || [], vscode),
-        status: files.length ? '' : 'Markdownファイルが見つかりません。.md または .markdown ファイルを追加してください。' };
+      if (selectedMode === 'files') {
+        const { directories, failed } = await workspaceDirectories(vscode, current);
+        return { nodes: buildTree(files, vscode.workspace.workspaceFolders || [], vscode, directories),
+          status: failed ? `${failed}フォルダーを読み込めませんでした。権限を確認して更新してください。` : files.length || directories.length ? '' : '上部のボタンからMarkdownファイルやフォルダーを作成できます。' };
+      }
       if (selectedMode === 'search') {
         const result = await searchDocuments(vscode, files.sort((a, b) => a.path.localeCompare(b.path)), { text: term }, current);
         return { nodes: result.nodes, status: !term ? '検索語を入力してください。' : `${result.nodes.length}ファイル一致${result.failed ? `（${result.failed}ファイルを読み込めませんでした）` : ''}` };
@@ -129,11 +165,11 @@ export function registerExplorer(context: VSCode.ExtensionContext, vscode: typeo
     }
     render();
   }
-  function refresh() {
+  function refresh(reveal = true) {
     generation++; cached = undefined; clearTimeout(queryTimer);
-    return publish(true);
+    return publish(reveal);
   }
-  const schedule = () => { clearTimeout(timer); timer = setTimeout(() => { void refresh(); }, 150); };
+  const schedule = (uri?: VSCode.Uri) => { if (uri?.path.split('/').some(part => excludedFolders.has(part))) return; clearTimeout(timer); timer = setTimeout(() => { void refresh(false); }, 150); };
   function activeChanged() {
     const next = activeResource();
     if (activeUri === next) return;
@@ -166,14 +202,18 @@ export function registerExplorer(context: VSCode.ExtensionContext, vscode: typeo
     }).catch(error => { void vscode.window.showWarningMessage(`文書への追従設定を保存できませんでした: ${error instanceof Error ? error.message : String(error)}`); });
     return followWrites;
   }
-  function open(uri: VSCode.Uri, source = false) {
-    return vscode.commands.executeCommand('vscode.openWith', uri, source ? 'default' : 'happyMarkdown.preview', { viewColumn: vscode.ViewColumn.Active, preview: true });
+  function open(uri: VSCode.Uri, source = false, pinned = false, side = false, preserveFocus = false) {
+    return vscode.commands.executeCommand('vscode.openWith', uri, source ? 'default' : 'happyMarkdown.preview', { viewColumn: side ? vscode.ViewColumn.Beside : vscode.ViewColumn.Active, preview: !pinned, preserveFocus });
   }
-  const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+  const watcher = vscode.workspace.createFileSystemWatcher('**/*');
   context.subscriptions.push(watcher,
     vscode.window.tabGroups.onDidChangeTabs(activeChanged), vscode.window.tabGroups.onDidChangeTabGroups(activeChanged),
     watcher.onDidCreate(schedule), watcher.onDidDelete(schedule), watcher.onDidChange(schedule),
-    vscode.workspace.onDidChangeWorkspaceFolders(refresh),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => refresh()),
+    vscode.workspace.onDidRenameFiles(async event => {
+      for (const { oldUri, newUri } of event.files) await remapResources(oldUri, newUri);
+      await refresh(false);
+    }),
     vscode.workspace.onDidChangeTextDocument(event => { if (mode === 'search' && /\.(md|markdown)$/i.test(event.document.uri.path)) schedule(); }),
     vscode.commands.registerCommand('happyMarkdown.enableFollowActive', () => setFollowActive(true)),
     vscode.commands.registerCommand('happyMarkdown.disableFollowActive', () => setFollowActive(false)),

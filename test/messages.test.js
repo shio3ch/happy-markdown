@@ -66,3 +66,26 @@ test('explorer protocol validates modes, expansion and nested file entries', () 
     assert.equal(isExplorerState(value), false);
   }
 });
+
+test('file operation protocol rejects malformed IDs, destinations and actions', () => {
+  const { isExplorerMessage } = require('../dist/shared/messages');
+  for (const value of [{ type: 'fileOperation', action: 'newFile' }, { type: 'fileOperation', action: 'paste', id: 'folder' },
+    { type: 'move', id: 'file', targetId: 'folder' }, { type: 'openTab', id: 'file' }]) assert.equal(isExplorerMessage(value), true);
+  for (const value of [{ type: 'fileOperation', action: 'delete' }, { type: 'fileOperation', action: 'shell', id: 'file' },
+    { type: 'fileOperation', action: 'rename', id: 1 }, { type: 'fileOperation', action: {} }, { type: 'move', id: 'file', targetId: {} },
+    { type: 'move', targetId: 'folder' }, { type: 'openTab', id: null }]) assert.equal(isExplorerMessage(value), false);
+});
+
+test('explorer keyboard protocol validates selection, focus, OS and additional open actions', () => {
+  const { isExplorerMessage, isExplorerFocus } = require('../dist/shared/messages');
+  for (const message of [{ type: 'selection', id: 'file' }, { type: 'selection' }, { type: 'treeFocus', focused: true }, { type: 'openSide', id: 'file' }, { type: 'openPreview', id: 'file' }]) assert.equal(isExplorerMessage(message), true);
+  for (const message of [{ type: 'selection', id: {} }, { type: 'treeFocus', focused: 'true' }, { type: 'openSide' }, { type: 'openPreview', id: [] }]) assert.equal(isExplorerMessage(message), false);
+  assert.equal(isExplorerFocus({ type: 'focusTree', id: 'file' }), true); assert.equal(isExplorerFocus({ type: 'focusTree', id: 3 }), false);
+});
+
+test('host-to-Webview tree commands validate the allowed UI actions', () => {
+  const { isExplorerTreeCommand } = require('../dist/shared/messages');
+  assert.equal(isExplorerTreeCommand({ type: 'treeCommand', command: 'contextMenu' }), true);
+  assert.equal(isExplorerTreeCommand({ type: 'treeCommand', command: 'toggleFolder' }), true);
+  for (const value of [null, { type: 'treeCommand', command: 'delete' }, { type: 'treeCommand', command: {} }]) assert.equal(isExplorerTreeCommand(value), false);
+});

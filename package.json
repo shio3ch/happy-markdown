@@ -88,6 +88,70 @@
         "command": "happyMarkdown.disableFollowActive",
         "title": "Happy Markdown: 現在の文書への追従をオフ",
         "icon": "$(eye)"
+      },
+      {
+        "command": "happyMarkdown.explorer.newFile",
+        "title": "Happy Markdown: エクスプローラーでファイルを新規作成"
+      },
+      {
+        "command": "happyMarkdown.explorer.newFolder",
+        "title": "Happy Markdown: エクスプローラーでフォルダーを新規作成"
+      },
+      {
+        "command": "happyMarkdown.explorer.duplicate",
+        "title": "Happy Markdown: エクスプローラーでファイルを複製"
+      },
+      {
+        "command": "happyMarkdown.explorer.copy",
+        "title": "Happy Markdown: エクスプローラーでファイルをコピー"
+      },
+      {
+        "command": "happyMarkdown.explorer.cut",
+        "title": "Happy Markdown: エクスプローラーでファイルを切り取り"
+      },
+      {
+        "command": "happyMarkdown.explorer.paste",
+        "title": "Happy Markdown: エクスプローラーでファイルを貼り付け"
+      },
+      {
+        "command": "happyMarkdown.explorer.copyPath",
+        "title": "Happy Markdown: エクスプローラーでパスをコピー"
+      },
+      {
+        "command": "happyMarkdown.explorer.copyRelativePath",
+        "title": "Happy Markdown: エクスプローラーで相対パスをコピー"
+      },
+      {
+        "command": "happyMarkdown.explorer.rename",
+        "title": "Happy Markdown: エクスプローラーで名前を変更"
+      },
+      {
+        "command": "happyMarkdown.explorer.delete",
+        "title": "Happy Markdown: エクスプローラーで削除"
+      },
+      {
+        "command": "happyMarkdown.explorer.openTab",
+        "title": "Happy Markdown: エクスプローラーでファイルを通常タブで開く"
+      },
+      {
+        "command": "happyMarkdown.explorer.openSide",
+        "title": "Happy Markdown: エクスプローラーでファイルを横に開く"
+      },
+      {
+        "command": "happyMarkdown.explorer.openPreview",
+        "title": "Happy Markdown: エクスプローラーでフォーカスを残してファイルを表示"
+      },
+      {
+        "command": "happyMarkdown.explorer.cancelCut",
+        "title": "Happy Markdown: エクスプローラーで切り取りを解除"
+      },
+      {
+        "command": "happyMarkdown.explorer.contextMenu",
+        "title": "Happy Markdown: エクスプローラーでコンテキストメニューを開く"
+      },
+      {
+        "command": "happyMarkdown.explorer.toggleFolder",
+        "title": "Happy Markdown: エクスプローラーでフォルダーを開閉"
       }
     ],
     "menus": {
@@ -140,7 +204,131 @@
           "name": "Markdownエクスプローラー"
         }
       ]
-    }
+    },
+    "keybindings": [
+      {
+        "command": "happyMarkdown.explorer.rename",
+        "key": "f2",
+        "mac": "enter",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerHasSelection && !happyMarkdown.explorerRootSelected",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.delete",
+        "key": "delete",
+        "mac": "cmd+backspace",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerHasSelection && !happyMarkdown.explorerRootSelected",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.delete",
+        "key": "delete",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerHasSelection && !happyMarkdown.explorerRootSelected && isMac",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.copy",
+        "key": "ctrl+c",
+        "mac": "cmd+c",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerFileSelected",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.cut",
+        "key": "ctrl+x",
+        "mac": "cmd+x",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerFileSelected",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.paste",
+        "key": "ctrl+v",
+        "mac": "cmd+v",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerHasWorkspace && happyMarkdown.explorerCanPaste",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.copyPath",
+        "key": "ctrl+alt+c",
+        "mac": "cmd+alt+c",
+        "win": "shift+alt+c",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerHasSelection",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.copyRelativePath",
+        "key": "ctrl+alt+shift+c",
+        "mac": "cmd+alt+shift+c",
+        "win": "ctrl+k ctrl+shift+c",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerHasSelection",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.openTab",
+        "key": "enter",
+        "mac": "cmd+down",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerFileSelected",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.openPreview",
+        "key": "space",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerFileSelected",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.openSide",
+        "key": "ctrl+enter",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerFileSelected",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.cancelCut",
+        "key": "escape",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerHasCut",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.contextMenu",
+        "key": "shift+f10",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy",
+        "args": {
+          "fromKeybinding": true
+        }
+      },
+      {
+        "command": "happyMarkdown.explorer.toggleFolder",
+        "key": "enter",
+        "when": "happyMarkdown.explorerTreeFocus && !happyMarkdown.explorerBusy && happyMarkdown.explorerFolderSelected && !isMac",
+        "args": {
+          "fromKeybinding": true
+        }
+      }
+    ]
   },
   "devDependencies": {
     "@codemirror/autocomplete": "^6.20.4",

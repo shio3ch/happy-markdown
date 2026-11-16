@@ -102,8 +102,16 @@ export function isSearchState(value: unknown): value is SearchState {
         isVersion(match.line) && typeof match.text === 'string'));
 }
 
+export type ExplorerPlatform = 'mac' | 'windows' | 'linux';
 export type ExplorerMode = 'files' | 'search' | 'bookmarks';
+export type FileOperation = 'newFile' | 'newFolder' | 'duplicate' | 'copy' | 'cut' | 'paste' | 'copyPath' | 'copyRelativePath' | 'rename' | 'delete';
+export type ExplorerAction = SearchAction | 'openTab' | 'openSide' | 'openPreview';
 export type ExplorerMessage = SearchMessage
+  | { type: 'openTab' | 'openSide' | 'openPreview'; id: string }
+  | { type: 'selection'; id?: string }
+  | { type: 'treeFocus'; focused: boolean }
+  | { type: 'fileOperation'; action: FileOperation; id?: string }
+  | { type: 'move'; id: string; targetId?: string }
   | { type: 'mode'; mode: ExplorerMode }
   | { type: 'expand'; id: string; expanded: boolean }
   | { type: 'follow'; enabled: boolean }
@@ -116,13 +124,17 @@ export interface FileEntry {
   active: boolean;
   icon: { light: string; dark: string };
   children?: FileEntry[];
+  root?: boolean;
 }
 export interface ExplorerState extends SearchState {
   mode: ExplorerMode;
+  platform?: ExplorerPlatform;
   nodes: FileEntry[];
   expandedIds: string[];
   followActive: boolean;
   hasWorkspace: boolean;
+  cutId?: string;
+  canPaste?: boolean;
   revealId?: string;
   revealRevision: number;
 }
@@ -133,6 +145,12 @@ export function isExplorerMessage(value: unknown): value is ExplorerMessage {
   if (isSearchMessage(value)) return true;
   if (!isRecord(value)) return false;
   switch (value.type) {
+    case 'openTab': case 'openSide': case 'openPreview': return typeof value.id === 'string';
+    case 'treeFocus': return typeof value.focused === 'boolean';
+    case 'selection': return value.id === undefined || typeof value.id === 'string';
+    case 'fileOperation': return typeof value.action === 'string' && ['newFile', 'newFolder', 'duplicate', 'copy', 'cut', 'paste', 'copyPath', 'copyRelativePath', 'rename', 'delete'].includes(value.action) &&
+      (value.id === undefined ? ['newFile', 'newFolder', 'paste'].includes(value.action) : typeof value.id === 'string');
+    case 'move': return typeof value.id === 'string' && (value.targetId === undefined || typeof value.targetId === 'string');
     case 'mode': return isExplorerMode(value.mode);
     case 'expand': return typeof value.id === 'string' && typeof value.expanded === 'boolean';
     case 'follow': return typeof value.enabled === 'boolean';
@@ -149,6 +167,7 @@ function isFileEntries(value: unknown): value is FileEntry[] {
         typeof node.label !== 'string' || typeof node.path !== 'string' || typeof node.bookmarked !== 'boolean' ||
         typeof node.active !== 'boolean' || !isRecord(node.icon) || typeof node.icon.light !== 'string' || typeof node.icon.dark !== 'string') return false;
     seen.add(node); ids.add(node.id);
+    if (node.root !== undefined && typeof node.root !== 'boolean') return false;
     if (node.children !== undefined) {
       if (!Array.isArray(node.children)) return false;
       node.children.forEach(child => pending.push(child));
@@ -159,7 +178,19 @@ function isFileEntries(value: unknown): value is FileEntry[] {
 export function isExplorerState(value: unknown): value is ExplorerState {
   return isRecord(value) && isSearchState(value) && isExplorerMode(value.mode) &&
     isFileEntries(value.nodes) &&
+    (value.platform === undefined || value.platform === 'mac' || value.platform === 'windows' || value.platform === 'linux') &&
     Array.isArray(value.expandedIds) && value.expandedIds.every(id => typeof id === 'string') &&
     typeof value.followActive === 'boolean' && typeof value.hasWorkspace === 'boolean' &&
+    (value.cutId === undefined || typeof value.cutId === 'string') && (value.canPaste === undefined || typeof value.canPaste === 'boolean') &&
     (value.revealId === undefined || typeof value.revealId === 'string') && isVersion(value.revealRevision);
+}
+
+export interface ExplorerFocus { type: 'focusTree'; id?: string }
+export function isExplorerFocus(value: unknown): value is ExplorerFocus {
+  return isRecord(value) && value.type === 'focusTree' && (value.id === undefined || typeof value.id === 'string');
+}
+
+export interface ExplorerTreeCommand { type: 'treeCommand'; command: 'contextMenu' | 'toggleFolder' }
+export function isExplorerTreeCommand(value: unknown): value is ExplorerTreeCommand {
+  return isRecord(value) && value.type === 'treeCommand' && (value.command === 'contextMenu' || value.command === 'toggleFolder');
 }

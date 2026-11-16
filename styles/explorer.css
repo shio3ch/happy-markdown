@@ -51,7 +51,23 @@ body.vscode-dark .file-icon .icon-dark, body.vscode-high-contrast .file-icon .ic
 .file-actions { margin-left: auto; display: flex; }
 .file-actions button { border: 0; border-radius: 3px; padding: 3px; background: transparent; font-size: 14px; }
 .file-actions button:hover { background: var(--vscode-toolbar-hoverBackground); }
-.file-context-menu { position: absolute; top: 100%; right: 4px; z-index: 10; display: flex; flex-direction: column; min-width: 180px; padding: 4px; border: 1px solid var(--vscode-menu-border, currentColor); border-radius: 4px; background: var(--vscode-menu-background, var(--vscode-sideBar-background)); color: var(--vscode-menu-foreground, var(--vscode-foreground)); box-shadow: 0 4px 12px #0003; }
+.file-context-menu { position: fixed; z-index: 10; display: flex; flex-direction: column; min-width: min(200px, calc(100vw - 8px)); max-width: calc(100vw - 8px); max-height: calc(100vh - 8px); overflow-y: auto; padding: 4px; border: 1px solid var(--vscode-menu-border, currentColor); border-radius: 4px; background: var(--vscode-menu-background, var(--vscode-sideBar-background)); color: var(--vscode-menu-foreground, var(--vscode-foreground)); box-shadow: 0 4px 12px #0003; }
 .file-context-menu button { border: 0; background: transparent; text-align: left; padding: 6px; }
 .file-context-menu button:hover, .file-context-menu button:focus { background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground)); }
 .empty-workspace { padding: 0 12px; }
+
+.explorer-file-tools { display: flex; gap: 4px; padding: 4px 8px; }
+.explorer-file-tools button { display: flex; align-items: center; justify-content: center; width: 28px; height: 26px; border: 0; border-radius: 3px; background: transparent; }
+.explorer-file-tools button:hover { background: var(--vscode-toolbar-hoverBackground); }
+button:disabled { cursor: default; opacity: .45; }
+.file-tree { min-height: 100px; padding-bottom: 36px; }
+.file-row.cut > * { opacity: .5; }
+.drop-target { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; background: var(--vscode-list-dropBackground); }
+.file-context-menu button { flex-shrink: 0; }
+.file-context-menu button:disabled:hover { background: transparent; }
+.file-context-menu [role="separator"] { border-top: 1px solid var(--vscode-menu-separatorBackground, var(--vscode-panel-border)); margin: 4px; }
+
+.tooltip-trigger { display: inline-flex; flex: 0 0 auto; }
+.explorer-tooltip { position: fixed; z-index: 100; pointer-events: none; max-width: min(260px, calc(100vw - 8px)); max-height: calc(100vh - 8px); overflow: hidden; padding: 5px 8px; border: 1px solid var(--vscode-editorHoverWidget-border, var(--vscode-focusBorder)); border-radius: 4px; color: var(--vscode-editorHoverWidget-foreground, var(--vscode-foreground)); background: var(--vscode-editorHoverWidget-background, var(--vscode-sideBar-background)); box-shadow: 0 2px 8px var(--vscode-widget-shadow, #0003); font-size: 12px; line-height: 1.5; font-weight: normal; white-space: normal; overflow-wrap: anywhere; }
+.file-context-menu button { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.explorer-shortcut { flex: 0 0 auto; font: inherit; font-size: 11px; color: var(--vscode-descriptionForeground); white-space: nowrap; }
